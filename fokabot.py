@@ -28,6 +28,7 @@ Bot(
     ssl=Config()["IRC_SSL"],
     nickname=Config()["BOT_NICKNAME"],
     password=Config()["BOT_PASSWORD"],
+    commands_prefix=Config()["COMMANDS_PREFIX"]
 )
 # Register all events
 import events

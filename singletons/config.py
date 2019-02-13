@@ -17,6 +17,8 @@ class Config:
             "BOT_PASSWORD": config("BOT_PASSWORD", default=""),
 
             "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq", cast=Csv(str)),
+
+            "COMMANDS_PREFIX": config("COMMANDS_PREFIX", default="!"),
         }
 
     def __getitem__(self, item):

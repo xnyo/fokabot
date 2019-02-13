@@ -10,7 +10,7 @@ from utils import singleton
 
 @singleton.singleton
 class Bot:
-    def __init__(self, *, host: str = "irc.ripple.moe", port: int = 6667, ssl: bool = True, nickname: str = "FokaBot", password: str=""):
+    def __init__(self, *, host: str = "irc.ripple.moe", port: int = 6667, ssl: bool = True, nickname: str = "FokaBot", password: str="", commands_prefix: str="!"):
         self.client: Client = Client(host, port, ssl=ssl)
         self.nickname = nickname
         self.password = password
@@ -20,7 +20,7 @@ class Bot:
             self.logger.warning("SSL is disabled")
         self.joined_channels = set()
         self.command_handlers = {}
-        self.command_prefix = "!"   # TODO: configurable
+        self.command_prefix = commands_prefix
         self.ready = False
 
     @property
