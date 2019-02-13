@@ -2,3 +2,4 @@ git+git://github.com/xnyo/bottom@bb4e2a0153ab717483a61b863b19ac9bb82e6130#egg=bo
 python-decouple==3.1
 schema==0.6.8
 aiotinydb
+ujson

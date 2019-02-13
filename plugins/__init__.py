@@ -5,7 +5,7 @@ from schema import SchemaError, Schema, Or
 
 
 class Arg:
-    def __init__(self, key: Optional[str] = None, schema: Optional[Schema] = None, default: Optional[Any] = None, rest: bool = False):
+    def __init__(self, key: Optional[str] = None, schema=None, default: Optional[Any] = None, rest: bool = False):
         self.key = key
         self.schema = schema
         self.default = default

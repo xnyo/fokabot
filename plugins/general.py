@@ -3,6 +3,7 @@ import random
 from aiotinydb import AIOTinyDB
 
 from schema import Use, And, Schema
+from tinydb import Query, where
 
 from plugins import arguments, Arg, errors, base
 from singletons.bot import Bot
@@ -32,7 +33,11 @@ async def help_(*_, **__):
 )
 async def faq(username: str, channel: str, params: Dict[str, str]):
     async with AIOTinyDB(".db.json") as db:
-        print(db.table("faq").all())
+        results = db.table("faq").search(where("topic") == params["topic"])
+        if results:
+            return results[0]["response"]
+        else:
+            return "No such FAQ topic."
 
 
 @bot.command("modfaq")
@@ -43,4 +48,12 @@ async def faq(username: str, channel: str, params: Dict[str, str]):
 )
 async def mod_faq(username: str, channel: str, params: Dict[str, str]):
     async with AIOTinyDB(".db.json") as db:
-        print(db.table("faq").all())
+        db.table("faq").upsert({"topic": params["topic"], "response": params["response"]}, where("topic") == params["topic"])
+    return f"FAQ topic '{params['topic']}' updated!"
+
+
+@bot.command("lsfaq")
+@base
+async def ls_faq(*_, **__):
+    async with AIOTinyDB(".db.json") as db:
+        return f"Available FAQ topics: {', '.join(x['topic'] for x in db.table('faq').all())}"
