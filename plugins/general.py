@@ -16,8 +16,8 @@ bot = Bot()
 @arguments(
     Arg("number", And(Use(int), lambda x: x > 0), default=100)
 )
-async def roll(username: str, channel: str, params: Dict[str, int]):
-    return f"{username} rolls {random.randrange(0, params['number'])} points!"
+async def roll(username: str, channel: str, number: int):
+    return f"{username} rolls {random.randrange(0, number)} points!"
 
 
 @bot.command("help")
@@ -31,9 +31,9 @@ async def help_(*_, **__):
 @arguments(
     Arg("topic", Schema(str))
 )
-async def faq(username: str, channel: str, params: Dict[str, str]):
+async def faq(username: str, channel: str, topic: str):
     async with AIOTinyDB(".db.json") as db:
-        results = db.table("faq").search(where("topic") == params["topic"])
+        results = db.table("faq").search(where("topic") == topic)
         if results:
             return results[0]["response"]
         else:
@@ -46,10 +46,10 @@ async def faq(username: str, channel: str, params: Dict[str, str]):
     Arg("topic", Schema(str)),
     Arg("response", Schema(str), rest=True),
 )
-async def mod_faq(username: str, channel: str, params: Dict[str, str]):
+async def mod_faq(username: str, channel: str, topic: str, response: str):
     async with AIOTinyDB(".db.json") as db:
-        db.table("faq").upsert({"topic": params["topic"], "response": params["response"]}, where("topic") == params["topic"])
-    return f"FAQ topic '{params['topic']}' updated!"
+        db.table("faq").upsert({"topic": topic, "response": response}, where("topic") == topic)
+    return f"FAQ topic '{topic}' updated!"
 
 
 @bot.command("lsfaq")

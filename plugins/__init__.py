@@ -36,7 +36,6 @@ def arguments(*args: Tuple[Arg]) -> Callable:
             validated_args = {}
             if args[-1].rest:
                 parts = [x for x in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
-            print(parts)
             for arg, part in zip_longest(args, parts, fillvalue=None):
                 try:
                     v = arg.schema.validate(part)
@@ -50,7 +49,7 @@ def arguments(*args: Tuple[Arg]) -> Callable:
                         raise BotSyntaxError(args)
                     # print(e)
                     # raise BotSyntaxError(args)
-            return await f(username, channel, validated_args)
+            return await f(username, channel, **validated_args)
         return wrapper
     return decorator
 
