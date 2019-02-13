@@ -1,11 +1,10 @@
-from typing import Dict
 import random
 from aiotinydb import AIOTinyDB
 
 from schema import Use, And, Schema
-from tinydb import Query, where
+from tinydb import where
 
-from plugins import arguments, Arg, errors, base
+from plugins import arguments, Arg, base
 from singletons.bot import Bot
 
 bot = Bot()
@@ -13,9 +12,7 @@ bot = Bot()
 
 @bot.command("roll")
 @base
-@arguments(
-    Arg("number", And(Use(int), lambda x: x > 0), default=100)
-)
+@arguments(Arg("number", And(Use(int), lambda x: x > 0), default=100))
 async def roll(username: str, channel: str, number: int):
     return f"{username} rolls {random.randrange(0, number)} points!"
 
@@ -28,9 +25,7 @@ async def help_(*_, **__):
 
 @bot.command("faq")
 @base
-@arguments(
-    Arg("topic", Schema(str))
-)
+@arguments(Arg("topic", Schema(str)))
 async def faq(username: str, channel: str, topic: str):
     async with AIOTinyDB(".db.json") as db:
         results = db.table("faq").search(where("topic") == topic)

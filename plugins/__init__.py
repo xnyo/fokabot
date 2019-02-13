@@ -1,7 +1,7 @@
 from itertools import zip_longest
-from typing import Callable, Any, Tuple, Optional, Iterable, Sequence
+from typing import Callable, Any, Tuple, Optional
 
-from schema import SchemaError, Schema, Or
+from schema import SchemaError, Or
 
 
 class Arg:
