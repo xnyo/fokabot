@@ -1,4 +1,4 @@
-from decouple import config
+from decouple import config, Csv
 
 from utils.singleton import singleton
 
@@ -15,6 +15,8 @@ class Config:
 
             "BOT_NICKNAME": config("BOT_NICKNAME", default="FokaBot"),
             "BOT_PASSWORD": config("BOT_PASSWORD", default=""),
+
+            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq", cast=Csv(str)),
         }
 
     def __getitem__(self, item):

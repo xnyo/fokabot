@@ -12,22 +12,21 @@ async def on_connect(**_):
     :return:
     """
     # Send first PASS, then NICK
-    bot.logger.info("Connecting, sending credentials")
+    bot.logger.info("Logging in")
     bot.client.send("PASS", password=bot.password)
     bot.client.send("NICK", nick=bot.nickname)
+
     # Wait for MOTD (successfully logged in)
     await bot.wait_for("RPL_ENDOFMOTD", "ERR_NOMOTD")
-    bot.logger.debug("Connected! Waiting for channels")
 
     # Request channels (joined in @RPL_LIST) and wait for RPL_LISTEND
     bot.client.send("LIST")
-    await bot.wait_for("RPL_LISTEND")
-    bot.logger.debug("Bot logged in!")
+    # TODO: Periodically send LIST to the server
     bot.ready = True
 
 
 @bot.client.on("RPL_LIST")
-async def on_list(channel, users, description):
+async def on_list(channel, *_, **__):
     """
     RPL_LIST handler. Joins the channel if we haven't already.
 
@@ -37,10 +36,8 @@ async def on_list(channel, users, description):
     :return:
     """
     # We got some channel info, if we haven't joined it yet, join it now
-    bot.logger.debug(f"Got channel info: {channel} '{description}' ({users} users)")
     if channel not in bot.joined_channels:
         # Send JOIN
-        bot.logger.debug(f"Joining {channel}")
         bot.client.send("JOIN", channel=channel)
 
         # Wait for RPL_TOPIC
@@ -48,7 +45,7 @@ async def on_list(channel, users, description):
 
         # Add to joined_channels set and log
         bot.joined_channels.add(channel)
-        bot.logger.info(f"Joined {channel}")
+        (bot.logger.info if bot.ready else bot.logger.debug)(f"Joined {channel}")
 
 
 @bot.client.on("PING")
@@ -66,6 +63,7 @@ def on_ping(message, **_):
 
 @bot.client.on("PRIVMSG")
 async def on_privmsg(target, message, host, **kwargs):
+    # TODO: Add support for non-prefix commands
     if host.lower() == bot.nickname.lower() or not message.startswith(bot.command_prefix):
         return
     if target.lower() == bot.nickname.lower():

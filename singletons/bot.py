@@ -16,6 +16,8 @@ class Bot:
         self.password = password
         self.logger = logging.getLogger("fokabot")
         self.logger.info(f"Creating bot ({self.nickname}) {host}:{port} (ssl: {ssl})")
+        if not ssl:
+            self.logger.warning("SSL is disabled")
         self.joined_channels = set()
         self.command_handlers = {}
         self.command_prefix = "!"   # TODO: configurable
