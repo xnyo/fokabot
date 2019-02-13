@@ -3,3 +3,4 @@
 .pyenv
 bottom
 settings.ini
+.db.json
