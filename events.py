@@ -1,0 +1,79 @@
+from singletons.bot import Bot
+
+bot = Bot()
+
+
+@bot.client.on("CLIENT_CONNECT")
+async def on_connect(**_):
+    """
+    Executed when connecting. Sends PASS/NICK and requests all channels
+
+    :param _:
+    :return:
+    """
+    # Send first PASS, then NICK
+    bot.logger.info("Connecting, sending credentials")
+    bot.client.send("PASS", password=bot.password)
+    bot.client.send("NICK", nick=bot.nickname)
+    # Wait for MOTD (successfully logged in)
+    await bot.wait_for("RPL_ENDOFMOTD", "ERR_NOMOTD")
+    bot.logger.debug("Connected! Waiting for channels")
+
+    # Request channels (joined in @RPL_LIST) and wait for RPL_LISTEND
+    bot.client.send("LIST")
+    await bot.wait_for("RPL_LISTEND")
+    bot.logger.debug("Bot logged in!")
+    bot.ready = True
+
+
+@bot.client.on("RPL_LIST")
+async def on_list(channel, users, description):
+    """
+    RPL_LIST handler. Joins the channel if we haven't already.
+
+    :param channel:
+    :param users:
+    :param description:
+    :return:
+    """
+    # We got some channel info, if we haven't joined it yet, join it now
+    bot.logger.debug(f"Got channel info: {channel} '{description}' ({users} users)")
+    if channel not in bot.joined_channels:
+        # Send JOIN
+        bot.logger.debug(f"Joining {channel}")
+        bot.client.send("JOIN", channel=channel)
+
+        # Wait for RPL_TOPIC
+        await bot.wait_for("RPL_TOPIC")
+
+        # Add to joined_channels set and log
+        bot.joined_channels.add(channel)
+        bot.logger.info(f"Joined {channel}")
+
+
+@bot.client.on("PING")
+def on_ping(message, **_):
+    """
+    PING handler, replies with PONG
+
+    :param message:
+    :param _:
+    :return:
+    """
+    bot.logger.debug("Got PING from server, replying with PONG")
+    bot.client.send("PONG", message=message)
+
+
+@bot.client.on("PRIVMSG")
+async def on_privmsg(target, message, host, **kwargs):
+    if host.lower() == bot.nickname.lower() or not message.startswith(bot.command_prefix):
+        return
+    if target.lower() == bot.nickname.lower():
+        target = host
+    raw_command_name = message.lstrip(bot.command_prefix).lower().split()[0]
+    for k, v in bot.command_handlers.items():
+        if raw_command_name == k:
+            bot.logger.debug(f"Triggered {v} ({k})")
+            result = await v(username=host, channel=target, message=message)
+            if result is not None:
+                bot.client.send("PRIVMSG", target=target, message=result)
