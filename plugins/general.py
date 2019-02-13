@@ -52,3 +52,12 @@ async def mod_faq(username: str, channel: str, topic: str, response: str):
 async def ls_faq(*_, **__):
     async with AIOTinyDB(".db.json") as db:
         return f"Available FAQ topics: {', '.join(x['topic'] for x in db.table('faq').all())}"
+
+
+@bot.command("delfaq")
+@base
+@arguments(Arg("topic", Schema(str)))
+async def del_faq(username: str, channel: str, topic: str):
+    async with AIOTinyDB(".db.json") as db:
+        db.table("faq").remove(where("topic") == topic)
+    return f"FAQ topic '{topic}' deleted!"
