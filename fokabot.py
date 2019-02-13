@@ -14,4 +14,5 @@ Bot(
 )
 import events
 import plugins.general
+import plugins.faq
 Bot().run()
