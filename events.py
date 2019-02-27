@@ -4,7 +4,7 @@ bot = Bot()
 
 
 @bot.client.on("CLIENT_CONNECT")
-async def on_connect(**_):
+async def on_connect(**_) -> None:
     """
     Executed when connecting. Sends PASS/NICK and requests all channels
 
@@ -26,13 +26,11 @@ async def on_connect(**_):
 
 
 @bot.client.on("RPL_LIST")
-async def on_list(channel, *_, **__):
+async def on_list(channel: str, *_, **__) -> None:
     """
     RPL_LIST handler. Joins the channel if we haven't already.
 
     :param channel:
-    :param users:
-    :param description:
     :return:
     """
     # We got some channel info, if we haven't joined it yet, join it now
@@ -49,7 +47,7 @@ async def on_list(channel, *_, **__):
 
 
 @bot.client.on("PING")
-def on_ping(message, **_):
+def on_ping(message: str, **_) -> None:
     """
     PING handler, replies with PONG
 
@@ -62,7 +60,7 @@ def on_ping(message, **_):
 
 
 @bot.client.on("PRIVMSG")
-async def on_privmsg(target, message, host, **kwargs):
+async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
     # TODO: Add support for non-prefix commands
     if host.lower() == bot.nickname.lower() or not message.startswith(bot.command_prefix):
         return

@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import logging
-from typing import Callable, Optional
+from typing import Callable, Optional, Dict
 
 from bottom import Client
 
@@ -10,7 +10,21 @@ from utils import singleton
 
 @singleton.singleton
 class Bot:
-    def __init__(self, *, host: str = "irc.ripple.moe", port: int = 6667, ssl: bool = True, nickname: str = "FokaBot", password: str="", commands_prefix: str="!"):
+    def __init__(
+        self, *, host: str = "irc.ripple.moe", port: int = 6667,
+        ssl: bool = True, nickname: str = "FokaBot", password: str = "",
+        commands_prefix: str = "!"
+    ):
+        """
+        Initializes Fokabot
+
+        :param host: IRC server host
+        :param port: IRC server port
+        :param ssl: whether the IRC server supports SSL or not
+        :param nickname: bot nickname
+        :param password: bot password ("irc token")
+        :param commands_prefix: commands prefix (eg: !, ;, ...)
+        """
         self.client: Client = Client(host, port, ssl=ssl)
         self.nickname = nickname
         self.password = password
@@ -19,26 +33,40 @@ class Bot:
         if not ssl:
             self.logger.warning("SSL is disabled")
         self.joined_channels = set()
-        self.command_handlers = {}
+        self.command_handlers: Dict[str, Callable] = {}
         self.command_prefix = commands_prefix
         self.ready = False
 
     @property
-    def loop(self):
+    def loop(self) -> asyncio.AbstractEventLoop:
+        """
+        Returns the IRC client IOLoop
+
+        :return: the IOLoop
+        """
         return self.client.loop
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Connects the IRC client and runs its loop forever
+
+        :return:
+        """
         self.loop.create_task(self.client.connect())
         self.client.loop.run_forever()
 
-    @staticmethod
-    def waiter(client):
+    def _waiter(self) -> Callable:
+        """
+        Helper for self.wait_for
+
+        :return:
+        """
         async def wait_for(*events, return_when=asyncio.FIRST_COMPLETED):
             if not events:
                 return
             done, pending = await asyncio.wait(
-                [client.wait(event) for event in events],
-                loop=client.loop,
+                [self.client.wait(event) for event in events],
+                loop=self.client.loop,
                 return_when=return_when
             )
 
@@ -54,15 +82,43 @@ class Bot:
         return wait_for
 
     @property
-    def wait_for(self):
-        return self.waiter(self.client)
+    def wait_for(self) -> Callable:
+        """
+        Waits for a (or some) specific IRC response(s)
+        ```
+        >>> # awaits RPL_ENDOFMOTD
+        >>> await bot.wait_for("RPL_ENDOFMOTD")
+        >>>
+        >>> # awaits RPL_ENDOFMOTD and gets the response
+        >>> end_of_motd = await bot.wait_for("RPL_ENDOFMOTD")
+        >>>
+        >>> # awaits for either RPL_ENDOFMOTD or ERR_NOMOTD and gets only response for ERR_NOMOTD
+        >>> _, no_motd = await bot.wait_for("RPL_ENDOFMOTD", "ERR_NOMOTD")
+        ```
 
-    def command(self, event: str, func: Optional[Callable] = None) -> Callable:
+        :return:
+        """
+        return self._waiter(self.client)
+
+    def command(self, command_name: str, func: Optional[Callable] = None) -> Callable:
+        """
+        Registers a new command (decorator)
+        ```
+        >>> @bot.command("roll")
+        >>> @base
+        >>> async def roll_handler(username: str, channel: str) -> str:
+        >>>     return "response"
+        ```
+
+        :param command_name: command name
+        :param func: function to call. Must accept two arguments (username, channel) and return a str or None.
+        :return:
+        """
         if func is None:
-            return functools.partial(self.command, event)  # type: ignore
+            return functools.partial(self.command, command_name)  # type: ignore
         wrapped = func
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
-        self.command_handlers[event.lower()] = wrapped
+        self.command_handlers[command_name.lower()] = wrapped
         # Always return original
         return func
