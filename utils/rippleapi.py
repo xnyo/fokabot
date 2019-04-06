@@ -159,6 +159,11 @@ class BanchoApiClient(RippleApiBaseClient):
                 self.logger.debug(e)
                 return None
 
+    async def moderated(self, channel: str, moderated: bool) -> Optional[Dict[Any, Any]]:
+        if channel.startswith("#"):
+            channel = channel.lstrip("#")
+        return await self._request(f"chat_channels/{channel}", "POST", {"moderated": moderated})
+
 
 class RippleApiClient(RippleApiBaseClient):
     @property
