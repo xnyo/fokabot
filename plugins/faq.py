@@ -3,7 +3,7 @@ from aiotinydb import AIOTinyDB
 from schema import Schema
 from tinydb import where
 
-from plugins import arguments, Arg, base
+import plugins
 from singletons.bot import Bot
 
 
@@ -11,8 +11,8 @@ bot = Bot()
 
 
 @bot.command("faq")
-@base
-@arguments(Arg("topic", Schema(str)))
+@plugins.base
+@plugins.arguments(plugins.Arg("topic", Schema(str)))
 async def faq(username: str, channel: str, topic: str) -> str:
     """
     !faq <topic>
@@ -31,10 +31,10 @@ async def faq(username: str, channel: str, topic: str) -> str:
 
 
 @bot.command("modfaq")
-@base
-@arguments(
-    Arg("topic", Schema(str)),
-    Arg("new_response", Schema(str), rest=True),
+@plugins.base
+@plugins.arguments(
+    plugins.Arg("topic", Schema(str)),
+    plugins.Arg("new_response", Schema(str), rest=True),
 )
 async def mod_faq(username: str, channel: str, topic: str, new_response: str) -> str:
     """
@@ -53,7 +53,7 @@ async def mod_faq(username: str, channel: str, topic: str, new_response: str) ->
 
 
 @bot.command("lsfaq")
-@base
+@plugins.base
 async def ls_faq(username: str, channel: str) -> str:
     """
     !lsfaq
@@ -67,8 +67,8 @@ async def ls_faq(username: str, channel: str) -> str:
 
 
 @bot.command("delfaq")
-@base
-@arguments(Arg("topic", Schema(str)))
+@plugins.base
+@plugins.arguments(plugins.Arg("topic", Schema(str)))
 async def del_faq(username: str, channel: str, topic: str) -> str:
     """
     !delfaq <topic>

@@ -2,15 +2,15 @@ import random
 
 from schema import Use, And
 
-from plugins import arguments, Arg, base
+import plugins
 from singletons.bot import Bot
 
 bot = Bot()
 
 
 @bot.command("roll")
-@base
-@arguments(Arg("number", And(Use(int), lambda x: x > 0), default=100))
+@plugins.base
+@plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100))
 async def roll(username: str, channel: str, number: int) -> str:
     """
     !roll <number>
@@ -24,7 +24,7 @@ async def roll(username: str, channel: str, number: int) -> str:
 
 
 @bot.command("help")
-@base
+@plugins.base
 async def help_(username: str, channel: str) -> str:
     """
     !help
