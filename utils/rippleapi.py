@@ -164,6 +164,15 @@ class BanchoApiClient(RippleApiBaseClient):
             channel = channel.lstrip("#")
         return await self._request(f"chat_channels/{channel}", "POST", {"moderated": moderated})
 
+    async def kick(self, api_identifier: str) -> bool:
+        try:
+            await self._request(f"clients/{api_identifier}/kick", "POST")
+        except RippleApiResponseError as e:
+            if e.data["code"] == 400:
+                return False
+            raise e
+        return True
+
 
 class RippleApiClient(RippleApiBaseClient):
     @property

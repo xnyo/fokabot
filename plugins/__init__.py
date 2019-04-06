@@ -3,6 +3,7 @@ from typing import Callable, Any, Tuple, Optional
 
 from schema import SchemaError, Or
 
+from singletons.bot import Bot
 from utils.rippleapi import RippleApiError
 
 
@@ -52,6 +53,23 @@ def arguments(*args: Tuple[Arg]) -> Callable:
                     # print(e)
                     # raise BotSyntaxError(args)
             return await f(username, channel, **validated_args)
+        return wrapper
+    return decorator
+
+
+def resolve_username_to_client(game: bool = True) -> Callable:
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
+            user_id = await Bot().ripple_api_client.what_id(target_username)
+            if user_id is None:
+                return "No such user."
+            client = await Bot().bancho_api_client.get_client(user_id, game_only=True)
+            if client is None:
+                return "This user is not connected right now"
+            api_identifier = client["api_identifier"]
+            return await f(
+                username, channel, *args, target_username=target_username, api_identifier=api_identifier, **kwargs
+            )
         return wrapper
     return decorator
 
