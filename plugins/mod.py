@@ -22,3 +22,14 @@ async def kick(username: str, channel: str, api_identifier: str, target_username
     success = await bot.bancho_api_client.kick(api_identifier)
     return f"{target_username} has been kicked from the server." if success else "The specified user is not connected."
 
+
+@bot.command("rtx")
+@plugins.base
+@plugins.arguments(
+    plugins.Arg("target_username", And(str)),
+    plugins.Arg("message", And(str), rest=True)
+)
+@plugins.resolve_username_to_client()
+async def kick(username: str, channel: str, api_identifier: str, message: str, **kwargs) -> str:
+    success = await bot.bancho_api_client.rtx(api_identifier, message)
+    return ":ok_hand:" if success else "No such user."

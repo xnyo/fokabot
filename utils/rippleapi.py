@@ -173,6 +173,15 @@ class BanchoApiClient(RippleApiBaseClient):
             raise e
         return True
 
+    async def rtx(self, api_identifier: str, message: str) -> bool:
+        try:
+            await self._request(f"clients/{api_identifier}/rtx", "POST", {"message": message})
+        except RippleApiResponseError as e:
+            if e.data["code"] == 400:
+                return False
+            raise e
+        return True
+
 
 class RippleApiClient(RippleApiBaseClient):
     @property
