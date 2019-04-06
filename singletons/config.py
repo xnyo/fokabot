@@ -8,6 +8,7 @@ from utils.singleton import singleton
 @singleton
 class Config:
     def __init__(self):
+        token = config("RIPPLE_API_TOKEN")
         self._config: Dict[str, Any] = {
             "DEBUG": config("DEBUG", default="0", cast=bool),
 
@@ -18,9 +19,15 @@ class Config:
             "BOT_NICKNAME": config("BOT_NICKNAME", default="FokaBot"),
             "BOT_PASSWORD": config("BOT_PASSWORD", default=""),
 
-            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq", cast=Csv(str)),
+            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq,alert", cast=Csv(str)),
 
             "COMMANDS_PREFIX": config("COMMANDS_PREFIX", default="!"),
+
+            "RIPPLE_API_BASE": config("RIPPLE_API_BASE", default="https://ripple.moe"),
+            "RIPPLE_API_TOKEN": token,
+
+            "BANCHO_API_BASE": config("BANCHO_API_BASE", default="https://c.ripple.moe"),
+            "BANCHO_API_TOKEN": config("BANCHO_API_TOKEN", default=token),
         }
 
     def __getitem__(self, item: str) -> Any:

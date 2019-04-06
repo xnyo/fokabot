@@ -11,12 +11,12 @@ bot = Bot()
 @bot.command("roll")
 @base
 @arguments(Arg("number", And(Use(int), lambda x: x > 0), default=100))
-async def roll(username: str, _: str, number: int) -> str:
+async def roll(username: str, channel: str, number: int) -> str:
     """
     !roll <number>
 
     :param username:
-    :param _:
+    :param channel:
     :param number: max number, must > 0. Default: 100
     :return: a random number between 0 and some other number
     """
@@ -25,7 +25,7 @@ async def roll(username: str, _: str, number: int) -> str:
 
 @bot.command("help")
 @base
-async def help_(*_, **__) -> str:
+async def help_(username: str, channel: str) -> str:
     """
     !help
 

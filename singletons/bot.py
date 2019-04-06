@@ -6,6 +6,7 @@ from typing import Callable, Optional, Dict
 from bottom import Client
 
 from utils import singleton
+from utils.rippleapi import BanchoApiClient, RippleApiClient
 
 
 @singleton.singleton
@@ -13,7 +14,8 @@ class Bot:
     def __init__(
         self, *, host: str = "irc.ripple.moe", port: int = 6667,
         ssl: bool = True, nickname: str = "FokaBot", password: str = "",
-        commands_prefix: str = "!"
+        commands_prefix: str = "!", bancho_api_client: BanchoApiClient = None,
+        ripple_api_client: RippleApiClient = None
     ):
         """
         Initializes Fokabot
@@ -26,6 +28,10 @@ class Bot:
         :param commands_prefix: commands prefix (eg: !, ;, ...)
         """
         self.client: Client = Client(host, port, ssl=ssl)
+        self.bancho_api_client = bancho_api_client
+        self.ripple_api_client = ripple_api_client
+        if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
+            raise RuntimeError("You must provide a valid BanchoApiClient")
         self.nickname = nickname
         self.password = password
         self.logger = logging.getLogger("fokabot")
@@ -98,7 +104,7 @@ class Bot:
 
         :return:
         """
-        return self._waiter(self.client)
+        return self._waiter()
 
     def command(self, command_name: str, func: Optional[Callable] = None) -> Callable:
         """

@@ -3,6 +3,8 @@ from typing import Callable, Any, Tuple, Optional
 
 from schema import SchemaError, Or
 
+from utils.rippleapi import RippleApiError
+
 
 class Arg:
     def __init__(self, key: Optional[str] = None, schema=None, default: Optional[Any] = None, rest: bool = False):
@@ -74,6 +76,8 @@ def errors(f: Callable) -> Callable:
     async def wrapper(username: str, channel: str, message: str, *args, **kwargs) -> Any:
         try:
             return await f(username, channel, message, *args, **kwargs)
+        except RippleApiError as e:
+            return f"API Error: {e}"
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
             return f"Syntax: {message.split(' ')[0]} {' '.join(str(x) if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"

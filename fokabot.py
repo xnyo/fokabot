@@ -8,6 +8,8 @@ from singletons.bot import Bot
 
 
 # Logging
+from utils.rippleapi import BanchoApiClient, RippleApiClient
+
 logging.basicConfig(level=logging.DEBUG if Config()["DEBUG"] else logging.INFO)
 logging.info(
     """
@@ -28,7 +30,15 @@ Bot(
     ssl=Config()["IRC_SSL"],
     nickname=Config()["BOT_NICKNAME"],
     password=Config()["BOT_PASSWORD"],
-    commands_prefix=Config()["COMMANDS_PREFIX"]
+    commands_prefix=Config()["COMMANDS_PREFIX"],
+    bancho_api_client=BanchoApiClient(
+        Config()["BANCHO_API_TOKEN"],
+        Config()["BANCHO_API_BASE"]
+    ),
+    ripple_api_client=RippleApiClient(
+        Config()["RIPPLE_API_TOKEN"],
+        Config()["RIPPLE_API_BASE"]
+    )
 )
 # Register all events
 import events

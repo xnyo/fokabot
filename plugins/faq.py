@@ -13,12 +13,12 @@ bot = Bot()
 @bot.command("faq")
 @base
 @arguments(Arg("topic", Schema(str)))
-async def faq(_: str, __: str, topic: str) -> str:
+async def faq(username: str, channel: str, topic: str) -> str:
     """
     !faq <topic>
 
-    :param _:
-    :param __:
+    :param username:
+    :param channel:
     :param topic: FAQ topic name. Will get it from FokaBot's tinydb
     :return: the topic content, if it exists, or an error message
     """
@@ -36,13 +36,13 @@ async def faq(_: str, __: str, topic: str) -> str:
     Arg("topic", Schema(str)),
     Arg("new_response", Schema(str), rest=True),
 )
-async def mod_faq(_: str, __: str, topic: str, new_response: str) -> str:
+async def mod_faq(username: str, channel: str, topic: str, new_response: str) -> str:
     """
     !modfaq <topic> <new_response>
     Edits an existing topic in tinydb. Doesn't do anything if the specified topic does not exist.
 
-    :param _:
-    :param __:
+    :param username:
+    :param channel:
     :param topic: the name of the FAQ topic to edit
     :param new_response: the new response
     :return: success message
@@ -54,12 +54,12 @@ async def mod_faq(_: str, __: str, topic: str, new_response: str) -> str:
 
 @bot.command("lsfaq")
 @base
-async def ls_faq(*_, **__) -> str:
+async def ls_faq(username: str, channel: str) -> str:
     """
     !lsfaq
 
-    :param _:
-    :param __:
+    :param username:
+    :param channel:
     :return: A list of all available FAQ topics
     """
     async with AIOTinyDB(".db.json") as db:
@@ -69,13 +69,13 @@ async def ls_faq(*_, **__) -> str:
 @bot.command("delfaq")
 @base
 @arguments(Arg("topic", Schema(str)))
-async def del_faq(_: str, __: str, topic: str) -> str:
+async def del_faq(username: str, channel: str, topic: str) -> str:
     """
     !delfaq <topic>
     Deletes a FAQ topic from tinydb, if it exists.
 
-    :param _:
-    :param __:
+    :param username:
+    :param channel:
     :param topic: the name of the topic to delete
     :return: a success message
     """
