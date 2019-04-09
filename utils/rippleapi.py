@@ -1,6 +1,6 @@
 import logging
 import ujson
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable, Type
 
 import aiohttp
 import async_timeout
@@ -13,16 +13,52 @@ class RippleApiError(Exception):
 
 
 class RippleApiResponseError(RippleApiError):
-    def __init__(self, data):
+    CODE = None
+
+    def __init__(self, data: Dict[Any, Any]):
+        """
+        A generic ripple api caused by a non 2xx response code
+
+        :param data: the json response data
+        """
         self.data = data
+
+    @classmethod
+    def factory(cls, data: Dict[Any, Any]) -> Exception:
+        """
+        Creates a RippleApiResponseError subclass based on the "code"
+        of the request
+
+        :param data: api json response dict
+        :return: an Exception (that should be raised). Can be a RippleApiResponseError if there's no more specific
+        exception, otherwise it's always RippleApiResponseError subclass.
+        """
+        response_code = data.get("code", None)
+        return (
+            cls if response_code is None
+            else next(x for x in RippleApiResponseError.__subclasses__() if x.CODE == response_code)
+        )(data)
+
+
+class InvalidArgumentsError(RippleApiResponseError):
+    CODE = 403
+
+
+class NotFoundError(RippleApiResponseError):
+    CODE = 404
 
 
 class RippleApiFatalError(RippleApiError):
+    """
+    A fatal error. Happens when it's not even possible to
+    get a valid json response from the api (eg: networking issue,
+    server-side issue)
+    """
     pass
 
 
 class RippleApiBaseClient(ABC):
-    logger = logging.getLogger("abapiclient")
+    logger = logging.getLogger("abstract_api")
 
     def __init__(
         self, token: Optional[str] = None, base: str = "https://ripple.moe",
@@ -43,10 +79,32 @@ class RippleApiBaseClient(ABC):
         self.user_id = 0
         self.privileges = 0
         self.user_privileges = 0
+        self._session: aiohttp.ClientSession = None
 
     @property
     def headers(self) -> Dict[str, Any]:
         return {"User-Agent": self.user_agent} if self.user_agent is not None else {}
+
+    @staticmethod
+    def bind_error_code(status_code: int, return_value: Any) -> Callable:
+        """
+        Returns a specific value when a status code is returned.
+        Note that this will only work with error response codes.
+
+        :param status_code: the status code
+        :param return_value: the return value
+        :return:
+        """
+        def decorator(f: Callable) -> Callable:
+            async def wrapper(*args, **kwargs):
+                try:
+                    await f(*args, **kwargs)
+                except RippleApiResponseError as e:
+                    if e.data["code"] == status_code:
+                        return return_value
+                    raise e
+            return wrapper
+        return decorator
 
     async def _request(
         self, handler: str, method: str = "GET", data: Optional[Dict[Any, Any]] = None
@@ -63,18 +121,29 @@ class RippleApiBaseClient(ABC):
                      to get user info about multiple users with 1 request), you must
                      use a `multidict.MultiDict` instead.
         :return: full decoded json body
+        :raises RippleApiError subclass: if there was a legal response from the server,
+                                         but the status code code was an error
+        :raises RippleApiError: if there was a legal response from the server, but the status code code was an error
+                                and there's no specific Exception bound to that error
+        :raises RippleApiFatalError: if the request wasn't processed correctly (network error, server error, json
+                                     decode error, etc)
         """
         # Default parameter
         if data is None:
             data = {}
 
-        # TODO: Single session
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        # Reuse the same session within the same client
+        if self._session is None:
+            self._session = aiohttp.ClientSession(headers=self.headers)
+        async with self._session as session:
             with async_timeout.timeout(self.timeout):
                 # Start with no json data and no GET parameters
                 json_data = None
                 params = None
 
+                # TODO: factory method.
+                #  (can we call it "factory" even if we're returning
+                #  funcions and not classes? Gang of Fur cit)
                 if method == "POST":
                     # Use POST and json body
                     f = session.post
@@ -111,7 +180,7 @@ class RippleApiBaseClient(ABC):
 
                 # Make sure the response was valid
                 if result.get("code", None) != 200:
-                    raise RippleApiResponseError(result)
+                    raise RippleApiResponseError.factory(result)
 
                 return result
 
@@ -122,77 +191,120 @@ class RippleApiBaseClient(ABC):
 
 
 class BanchoClientType(IntEnum):
+    """
+    Bancho API client types, according to delta's API
+    """
     OSU = 0
     IRC = auto()
 
 
 class BanchoApiClient(RippleApiBaseClient):
+    logger = logging.getLogger("bancho_api")
+
     @property
     def api_link(self) -> str:
         return f"{self.base.rstrip('/')}/api/v2"
 
-    async def mass_alert(self, message: str) -> Dict[Any, Any]:
-        return await self._request("system/mass_alert", "POST", {
+    async def mass_alert(self, message: str) -> None:
+        """
+        Sends a mass ServerAnnounce packet to all connected user on bancho
+
+        :param message: the message
+        :return:
+        """
+        await self._request("system/mass_alert", "POST", {
             "message": message
         })
 
-    async def alert(self, api_identifier: str, message: str) -> Dict[Any, Any]:
-        return await self._request(f"clients/{api_identifier}/alert", "POST", {
+    async def alert(self, api_identifier: str, message: str) -> None:
+        """
+        Sends a ServerAnnounce packet to a specified user connected to bancho
+
+        :param api_identifier: api identifier of the user. Must be a game client or the api will return an error.
+        :param message: the message
+        :return:
+        """
+        await self._request(f"clients/{api_identifier}/alert", "POST", {
             "message": message
         })
 
-    async def get_clients(self, user_id: int, game_only: bool = False) -> Dict[Any, Any]:
+    async def get_clients(self, user_id: int) -> Dict[Any, Any]:
+        """
+        Returns all clients that belong to that user as a list of dictionaries
+
+        :param user_id: id of the user
+        :return: list of dictionaries containing the clients that belong to that user.
+                 empty list if there are no connected clients for that user
+        """
         response = await self._request(f"clients/{user_id}")
         return response.get("clients", [])
 
+    @RippleApiBaseClient.bind_error_code(400, None)
     async def get_client(self, user_id: int, game_only: bool = False) -> Optional[Dict[Any, Any]]:
-        try:
-            clients = await self.get_clients(user_id)
-            if not clients:
-                return None
-            for client in clients:
-                if game_only and client["type"] == BanchoClientType.OSU or not game_only:
-                    return client
-            return None
-        except RippleApiResponseError as e:
-            if e.data["code"] == 400:
-                self.logger.debug(e)
-                return None
+        """
+        Returns a single client (the first one) for the selected user
 
-    async def moderated(self, channel: str, moderated: bool) -> Optional[Dict[Any, Any]]:
+        :param user_id: id of the user
+        :param game_only: id True, get only the first game client and ignore all irc clients
+        :return: dictionary, or None if there's no such client for the provided user
+        """
+        clients = await self.get_clients(user_id)
+        if not clients:
+            return None
+        for client in clients:
+            if game_only and client["type"] == BanchoClientType.OSU or not game_only:
+                return client
+        return None
+
+    async def moderated(self, channel: str, moderated: bool) -> None:
+        """
+        Puts a channel in moderated mode or turns moderated mode off
+
+        :param channel: channel name. Can start with or without #
+        :param moderated: True/False
+        :return:
+        """
         if channel.startswith("#"):
             channel = channel.lstrip("#")
-        return await self._request(f"chat_channels/{channel}", "POST", {"moderated": moderated})
+        await self._request(f"chat_channels/{channel}", "POST", {"moderated": moderated})
 
-    async def kick(self, api_identifier: str) -> bool:
-        try:
-            await self._request(f"clients/{api_identifier}/kick", "POST")
-        except RippleApiResponseError as e:
-            if e.data["code"] == 400:
-                return False
-            raise e
-        return True
+    async def kick(self, api_identifier: str) -> None:
+        """
+        Kicks a user from bancho
 
-    async def rtx(self, api_identifier: str, message: str) -> bool:
-        try:
-            await self._request(f"clients/{api_identifier}/rtx", "POST", {"message": message})
-        except RippleApiResponseError as e:
-            if e.data["code"] == 400:
-                return False
-            raise e
-        return True
+        :param api_identifier: the api identifier of the user. Must belong to a game client.
+        :return:
+        """
+        await self._request(f"clients/{api_identifier}/kick", "POST")
+
+    async def rtx(self, api_identifier: str, message: str) -> None:
+        """
+        RTXes someone
+
+        :param api_identifier: api identifier of the user. Must belong to a game client.
+        :param message: message to display
+        :return:
+        """
+        await self._request(f"clients/{api_identifier}/rtx", "POST", {"message": message})
 
 
 class RippleApiClient(RippleApiBaseClient):
+    logger = logging.getLogger("ripple_api")
+
     @property
     def api_link(self) -> str:
         return f"{self.base.rstrip('/')}/api/v1"
 
+    @RippleApiBaseClient.bind_error_code(404, None)
     async def what_id(self, username: str) -> Optional[int]:
-        try:
-            response = await self._request("users/whatid", "GET", {
-                "name": username
-            })
-        except RippleApiError:
-            return None
+        """
+        Returns the id of a user from their username (normal or ircified).
+        Returns None if there's no such user
+
+        :param username: username, either normal or ircified
+        :return: user id or None
+        """
+        response = await self._request("users/whatid", "GET", {
+            "name": username
+        })
         return response.get("id", None)
