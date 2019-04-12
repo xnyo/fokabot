@@ -25,7 +25,7 @@ async def roll(username: str, channel: str, number: int) -> str:
 
 @bot.command("help")
 @plugins.base
-async def help_(username: str, channel: str) -> str:
+async def help_(username: str, channel: str, message: str) -> str:
     """
     !help
 

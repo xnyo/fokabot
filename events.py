@@ -66,10 +66,14 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
         return
     if target.lower() == bot.nickname.lower():
         target = host
-    raw_command_name = message.lstrip(bot.command_prefix).lower().split()[0]
+    raw_message = message.lstrip(bot.command_prefix).lower()
     for k, v in bot.command_handlers.items():
-        if raw_command_name == k:
+        if raw_message.startswith(k) and (len(raw_message) <= len(k) or raw_message[len(k)] == " "):
             bot.logger.debug(f"Triggered {v} ({k})")
             result = await v(username=host, channel=target, message=message)
             if result is not None:
-                bot.client.send("PRIVMSG", target=target, message=result)
+                try:
+                    for x in result:
+                        bot.client.send("PRIVMSG", target=target, message=x)
+                except TypeError:
+                    bot.client.send("PRIVMSG", target=target, message=result)

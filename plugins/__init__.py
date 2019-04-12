@@ -29,9 +29,10 @@ class BotSyntaxError(Exception):
 
 def arguments(*args: Tuple[Arg]) -> Callable:
     # TODO: Check optional args only at the end
-    for x in args:
-        if x.optional:
-            x.schema = Or(x.schema, None)
+    # What is this even???
+    # for x in args:
+    #     if x.optional:
+    #         x.schema = Or(x.schema, None)
 
     def decorator(f: Callable) -> Callable:
         async def wrapper(username: str, channel: str, message: str, *_, **__) -> Any:

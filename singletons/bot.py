@@ -11,6 +11,8 @@ from utils.rippleapi import BanchoApiClient, RippleApiClient
 
 @singleton.singleton
 class Bot:
+    VERSION: str = "2.0.0"
+
     def __init__(
         self, *, host: str = "irc.ripple.moe", port: int = 6667,
         ssl: bool = True, nickname: str = "FokaBot", password: str = "",

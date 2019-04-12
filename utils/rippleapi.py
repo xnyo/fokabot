@@ -287,6 +287,14 @@ class BanchoApiClient(RippleApiBaseClient):
         """
         await self._request(f"clients/{api_identifier}/rtx", "POST", {"message": message})
 
+    async def system_info(self) -> Dict[Any, Any]:
+        """
+        Returns some information about the currently running bancho server
+
+        :return:
+        """
+        return await self._request("system", "GET")
+
 
 class RippleApiClient(RippleApiBaseClient):
     logger = logging.getLogger("ripple_api")
