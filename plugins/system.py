@@ -1,6 +1,8 @@
 from typing import Tuple
 import datetime
 
+from schema import And, Use
+
 import plugins
 from singletons.bot import Bot
 
@@ -25,3 +27,23 @@ async def info(username: str, channel: str, message: str) -> Tuple:
         f"Running FokaBot v{Bot().VERSION}. "
         f"Scores server: {result['scores_server']['type']}, v{result['scores_server']['version']}",
     )
+
+
+@bot.command("system restart")
+@plugins.base
+@plugins.arguments(
+    plugins.Arg("instant", And(str, Use(lambda x: x in ("now", "instant"))), default=False, optional=True)
+)
+async def restart(username: str, channel: str, instant: bool) -> str:
+    """
+    !system restart [now/instant]
+
+    :param username:
+    :param channel:
+    :return:
+    """
+    r = await bot.bancho_api_client.graceful_shutdown()
+    print(r)
+    if r:
+        return "The server will be restarted soon"
+    return "The server is already restarting"

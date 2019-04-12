@@ -36,7 +36,7 @@ class RippleApiResponseError(RippleApiError):
         response_code = data.get("code", None)
         return (
             cls if response_code is None
-            else next(x for x in RippleApiResponseError.__subclasses__() if x.CODE == response_code)
+            else next((x for x in cls.__subclasses__() if x.CODE == response_code), cls)
         )(data)
 
 
@@ -79,7 +79,7 @@ class RippleApiBaseClient(ABC):
         self.user_id = 0
         self.privileges = 0
         self.user_privileges = 0
-        self._session: aiohttp.ClientSession = None
+        # self._session: aiohttp.ClientSession = None
 
     @property
     def headers(self) -> Dict[str, Any]:
@@ -98,7 +98,7 @@ class RippleApiBaseClient(ABC):
         def decorator(f: Callable) -> Callable:
             async def wrapper(*args, **kwargs):
                 try:
-                    await f(*args, **kwargs)
+                    return await f(*args, **kwargs)
                 except RippleApiResponseError as e:
                     if e.data["code"] == status_code:
                         return return_value
@@ -133,9 +133,9 @@ class RippleApiBaseClient(ABC):
             data = {}
 
         # Reuse the same session within the same client
-        if self._session is None:
-            self._session = aiohttp.ClientSession(headers=self.headers)
-        async with self._session as session:
+        # if self._session is None:
+        #     self._session = aiohttp.ClientSession(headers=self.headers)
+        async with aiohttp.ClientSession(headers=self.headers) as session:
             with async_timeout.timeout(self.timeout):
                 # Start with no json data and no GET parameters
                 json_data = None
@@ -294,6 +294,17 @@ class BanchoApiClient(RippleApiBaseClient):
         :return:
         """
         return await self._request("system", "GET")
+
+    @RippleApiBaseClient.bind_error_code(406, False)
+    async def graceful_shutdown(self) -> bool:
+        """
+        Gracefully shuts down bancho
+
+        :return: True if the request was accepted,
+                 False if the server is already restarting.
+        """
+        await self._request("system/graceful_shutdown", "POST")
+        return True
 
 
 class RippleApiClient(RippleApiBaseClient):

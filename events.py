@@ -72,7 +72,7 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
             bot.logger.debug(f"Triggered {v} ({k})")
             result = await v(username=host, channel=target, message=message)
             if result is not None:
-                if type(result) is not tuple and type(result) is not list:
+                if type(result) not in (tuple, list):
                     result = (result,)
                 for x in result:
                     bot.client.send("PRIVMSG", target=target, message=x)

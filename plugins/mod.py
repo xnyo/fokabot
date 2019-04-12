@@ -9,7 +9,7 @@ bot = Bot()
 
 @bot.command("moderated")
 @plugins.base
-@plugins.arguments(plugins.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True))
+@plugins.arguments(plugins.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True, optional=True))
 async def moderated(username: str, channel: str, on: int) -> str:
     await bot.bancho_api_client.moderated(channel, on)
     return f"This channel is {'now' if on else 'no longer'} in moderated mode"

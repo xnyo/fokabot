@@ -3,6 +3,8 @@ import functools
 import logging
 from typing import Callable, Optional, Dict
 
+from aiohttp import web
+
 from bottom import Client
 
 from utils import singleton
@@ -17,7 +19,7 @@ class Bot:
         self, *, host: str = "irc.ripple.moe", port: int = 6667,
         ssl: bool = True, nickname: str = "FokaBot", password: str = "",
         commands_prefix: str = "!", bancho_api_client: BanchoApiClient = None,
-        ripple_api_client: RippleApiClient = None
+        ripple_api_client: RippleApiClient = None, http_host: str = None, http_port: int = None
     ):
         """
         Initializes Fokabot
@@ -29,9 +31,12 @@ class Bot:
         :param password: bot password ("irc token")
         :param commands_prefix: commands prefix (eg: !, ;, ...)
         """
+        self.http_host = http_host
+        self.http_port = http_port
         self.client: Client = Client(host, port, ssl=ssl)
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
+        self.web_app: web.Application = web.Application()
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
             raise RuntimeError("You must provide a valid BanchoApiClient")
         self.nickname = nickname
@@ -60,6 +65,14 @@ class Bot:
 
         :return:
         """
+        import internal_api.handlers
+        self.web_app.add_routes([
+            web.post("/api/v0/send_message", internal_api.handlers.send_message)
+        ])
+        api_runner = web.AppRunner(self.web_app)
+        self.client.loop.run_until_complete(api_runner.setup())
+        site = web.TCPSite(api_runner, self.http_host, self.http_port)
+        asyncio.ensure_future(site.start())
         self.loop.create_task(self.client.connect())
         self.client.loop.run_forever()
 

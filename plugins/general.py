@@ -10,7 +10,7 @@ bot = Bot()
 
 @bot.command("roll")
 @plugins.base
-@plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100))
+@plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
 async def roll(username: str, channel: str, number: int) -> str:
     """
     !roll <number>

@@ -8,18 +8,23 @@ from utils.rippleapi import RippleApiError
 
 
 class Arg:
-    def __init__(self, key: Optional[str] = None, schema=None, default: Optional[Any] = None, rest: bool = False):
+    def __init__(
+        self, key: Optional[str] = None, schema=None,
+        default: Optional[Any] = None, rest: bool = False,
+        optional: bool = False
+    ):
         self.key = key
         self.schema = schema
         self.default = default
         self.rest = rest
+        self.optional = optional
 
     def __str__(self):
         return f"{self.key}{f'={self.default}' if self.default is not None else ''}{'...' if self.rest else ''}"
 
-    @property
-    def optional(self):
-        return self.default is not None
+    # @property
+    # def optional(self) -> bool:
+    #     return self.default is not None
 
 
 class BotSyntaxError(Exception):
@@ -29,10 +34,9 @@ class BotSyntaxError(Exception):
 
 def arguments(*args: Tuple[Arg]) -> Callable:
     # TODO: Check optional args only at the end
-    # What is this even???
-    # for x in args:
-    #     if x.optional:
-    #         x.schema = Or(x.schema, None)
+    for x in args:
+        if x.optional:  # pycharm pls
+            x.schema = Or(x.schema, x.default)
 
     def decorator(f: Callable) -> Callable:
         async def wrapper(username: str, channel: str, message: str, *_, **__) -> Any:
