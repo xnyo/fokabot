@@ -1,5 +1,7 @@
 import asyncio
 import signal
+from asyncio import Queue
+
 import functools
 import logging
 from typing import Callable, Optional, Dict
@@ -51,7 +53,11 @@ class Bot:
         self.joined_channels = set()
         self.command_handlers: Dict[str, Callable] = {}
         self.command_prefix = commands_prefix
-        self.ready = False
+        self._ready = self.ready = False
+        self.reconnecting = False
+
+        self.login_channels_queue = Queue()
+        self.login_channels_left = set()
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
@@ -83,9 +89,19 @@ class Bot:
             self.loop.run_forever()
         finally:
             self.logger.info("Interrupted.")
-            # self.loop.run_until_complete(self.dispose())
+            self.loop.run_until_complete(self.dispose())
             self.loop.stop()
             self.logger.info("Goodbye!")
+
+    async def dispose(self):
+        """
+        Sends QUIT to the server and disconnects the client
+
+        :return:
+        """
+        self.logger.info("Disposing Fokabot")
+        self.client.send("QUIT")
+        await self.client.disconnect()
 
     async def purge_privileges_cache_job(self, every=60):
         """
@@ -109,6 +125,7 @@ class Bot:
         :return:
         """
         async def wait_for(*events, return_when=asyncio.FIRST_COMPLETED):
+            self.logger.debug(f"Waiting for {events}")
             if not events:
                 return
             done, pending = await asyncio.wait(
@@ -116,6 +133,7 @@ class Bot:
                 loop=self.loop,
                 return_when=return_when
             )
+            self.logger.debug(f"Got something (done:{done}, pending:{pending})")
 
             # Get the result(s) of the completed task(s).
             ret = [future.result() for future in done]
@@ -169,3 +187,17 @@ class Bot:
         self.command_handlers[command_name.lower()] = wrapped
         # Always return original
         return func
+
+    @property
+    def ready(self) -> bool:
+        return self._ready
+
+    @ready.setter
+    def ready(self, value: bool) -> None:
+        self._ready = value
+        if self.ready:
+            self.client.trigger("ready")
+
+    def reset(self):
+        self.ready = False
+        self.joined_channels.clear()

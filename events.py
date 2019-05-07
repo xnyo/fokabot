@@ -1,3 +1,5 @@
+import asyncio
+
 from singletons.bot import Bot
 
 bot = Bot()
@@ -22,7 +24,7 @@ async def on_connect(**_) -> None:
     # Request channels (joined in @RPL_LIST) and wait for RPL_LISTEND
     bot.client.send("LIST")
     # TODO: Periodically send LIST to the server
-    bot.ready = True
+    bot.reconnecting = False
 
 
 @bot.client.on("RPL_LIST")
@@ -35,15 +37,38 @@ async def on_list(channel: str, *_, **__) -> None:
     """
     # We got some channel info, if we haven't joined it yet, join it now
     if channel not in bot.joined_channels:
-        # Send JOIN
+        if not bot.ready:
+            # We have just started the bot, add the clients to the login channels queue
+            bot.login_channels_left.add(channel.lower())
+        else:
+            # Immediately join if this is a new channel
+            bot.client.send("JOIN", channel=channel)
+
+
+@bot.client.on("RPL_LISTEND")
+async def on_list_end(*args, **kwargs) -> None:
+    if bot.ready:
+        # Wait for JOINs only when starting the bot
+        return
+    for channel in bot.login_channels_left:
         bot.client.send("JOIN", channel=channel)
+    bot.logger.debug(f"Got RPL_LISTEND, started waiting for RPL_TOPIC for {len(bot.login_channels_left)} channels")
+    while bot.login_channels_left:
+        bot.login_channels_left.remove(await bot.login_channels_queue.get())
+    bot.logger.debug("All channels joined. The bot is now ready!")
+    bot.ready = True
 
-        # Wait for RPL_TOPIC
-        await bot.wait_for("RPL_TOPIC")
 
-        # Add to joined_channels set and log
-        bot.joined_channels.add(channel)
-        (bot.logger.info if bot.ready else bot.logger.debug)(f"Joined {channel}")
+@bot.client.on("RPL_TOPIC")
+async def on_topic(channel: str, message: str):
+    bot.joined_channels.add(channel)
+    bot.logger.info(f"Joined {channel}")
+    if not bot.ready:
+        # If the bot is not ready yet, add the channels to the login channels queue
+        bot.login_channels_queue.put_nowait(channel.lower())
+
+
+# TODO: remove from bot.joined_channel when a channel gets disposed
 
 
 @bot.client.on("PING")
@@ -76,3 +101,31 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
                     result = (result,)
                 for x in result:
                     bot.client.send("PRIVMSG", target=target, message=x)
+
+
+@bot.client.on("CLIENT_DISCONNECT")
+async def on_disconnect(**kwargs):
+    async def reconnect():
+        await bot.client.connect()
+        await bot.wait_for("ready")
+        bot.client.send("PRIVMSG", target="#admin", message="Reconnected.")
+    if bot.reconnecting:
+        bot.logger.warning("Got CLIENT_DISCONNECT, but the bot is already reconnecting.")
+        return
+    bot.reset()
+    bot.reconnecting = True
+    seconds = 5     # todo: backoff?
+    bot.logger.info(f"Disconnected! Starting reconnect loop in {seconds} seconds")
+    await asyncio.sleep(seconds)
+    while True:
+        try:
+            bot.logger.info(f"Trying to reconnect. Max timeout is {seconds} seconds.")
+            await asyncio.wait_for(reconnect(), timeout=seconds)
+            break
+        except ConnectionError:
+            bot.logger.warning(f"Connection failed! Retrying in {seconds} seconds")
+            await asyncio.sleep(seconds)
+        except asyncio.TimeoutError:
+            bot.logger.warning("No response from the server")
+    bot.logger.info("Reconnected!")
+
