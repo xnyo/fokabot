@@ -1,4 +1,5 @@
 import asyncio
+import signal
 import functools
 import logging
 from typing import Callable, Optional, Dict
@@ -72,12 +73,19 @@ class Bot:
             web.post("/api/v0/send_message", internal_api.handlers.send_message)
         ])
         api_runner = web.AppRunner(self.web_app)
-        self.client.loop.run_until_complete(api_runner.setup())
+        self.loop.run_until_complete(api_runner.setup())
         site = web.TCPSite(api_runner, self.http_host, self.http_port)
         asyncio.ensure_future(site.start())
         self.loop.create_task(self.purge_privileges_cache_job())
         self.loop.create_task(self.client.connect())
-        self.client.loop.run_forever()
+        signal.signal(signal.SIGINT, lambda s, f: self.loop.stop())
+        try:
+            self.loop.run_forever()
+        finally:
+            self.logger.info("Interrupted.")
+            # self.loop.run_until_complete(self.dispose())
+            self.loop.stop()
+            self.logger.info("Goodbye!")
 
     async def purge_privileges_cache_job(self, every=60):
         """
@@ -105,7 +113,7 @@ class Bot:
                 return
             done, pending = await asyncio.wait(
                 [self.client.wait(event) for event in events],
-                loop=self.client.loop,
+                loop=self.loop,
                 return_when=return_when
             )
 
