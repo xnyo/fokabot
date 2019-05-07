@@ -1,5 +1,5 @@
 from itertools import zip_longest
-from typing import Callable, Any, Tuple, Optional
+from typing import Callable, Any, Tuple, Optional, List
 
 from schema import SchemaError, Or
 
@@ -40,11 +40,11 @@ def arguments(*args: Tuple[Arg]) -> Callable:
             x.schema = Or(x.schema, x.default)
 
     def decorator(f: Callable) -> Callable:
-        async def wrapper(username: str, channel: str, message: str, *_, **__) -> Any:
-            parts = message.split(" ")[1:]
+        async def wrapper(username: str, channel: str, message: str, parts: List[str], *_, **__) -> Any:
+            # parts = message.split(" ")[1:]
             validated_args = {}
             if args[-1].rest:
-                parts = [x for x in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
+                parts = [y for y in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
             for arg, part in zip_longest(args, parts, fillvalue=None):
                 try:
                     v = arg.schema.validate(part)
@@ -97,14 +97,15 @@ def public_only(f: Callable) -> Callable:
 
 
 def errors(f: Callable) -> Callable:
-    async def wrapper(username: str, channel: str, message: str, *args, **kwargs) -> Any:
+    async def wrapper(username: str, channel: str, message: str, *args, command_name_words: int, **kwargs) -> Any:
         try:
-            return await f(username, channel, message, *args, **kwargs)
+            return await f(username, channel, message, *args, command_name_words=command_name_words, **kwargs)
         except RippleApiError as e:
             return f"API Error: {e}"
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
-            return f"Syntax: {message.split(' ')[0]} {' '.join(str(x) if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
+            command_name = ' '.join(message.split(" ")[:command_name_words])
+            return f"Syntax: {command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
     return wrapper
 
 

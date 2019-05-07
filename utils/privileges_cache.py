@@ -51,6 +51,13 @@ class PrivilegesCache:
             return None
         return cached_privileges.privileges
 
+    def remove(self, username: str) -> None:
+        username = general.safefify_username(username)
+        try:
+            del self._data[username]
+        except KeyError:
+            pass
+
     async def cache_privileges(self, username: str, force: bool = False):
         username = general.safefify_username(username)
         if not force:
@@ -77,3 +84,7 @@ class PrivilegesCache:
 
     def __len__(self) -> int:
         return len(self._data)
+
+    def __contains__(self, item: str) -> bool:
+        item = general.safefify_username(item)
+        return item in self._data

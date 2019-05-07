@@ -95,7 +95,12 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
     for k, v in bot.command_handlers.items():
         if raw_message.startswith(k) and (len(raw_message) <= len(k) or raw_message[len(k)] == " "):
             bot.logger.debug(f"Triggered {v} ({k})")
-            result = await v(username=host, channel=target, message=message)
+            command_name_words = len(k.split(" "))
+            result = await v(
+                username=host, channel=target, message=message,
+                parts=message.split(" ")[command_name_words:],
+                command_name_words=command_name_words
+            )
             if result is not None:
                 if type(result) not in (tuple, list):
                     result = (result,)
