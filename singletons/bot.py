@@ -8,6 +8,7 @@ from aiohttp import web
 from bottom import Client
 
 from utils import singleton
+from utils.privileges_cache import PrivilegesCache
 from utils.rippleapi import BanchoApiClient, RippleApiClient
 
 
@@ -37,6 +38,7 @@ class Bot:
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
         self.web_app: web.Application = web.Application()
+        self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
             raise RuntimeError("You must provide a valid BanchoApiClient")
         self.nickname = nickname
@@ -73,8 +75,24 @@ class Bot:
         self.client.loop.run_until_complete(api_runner.setup())
         site = web.TCPSite(api_runner, self.http_host, self.http_port)
         asyncio.ensure_future(site.start())
+        self.loop.create_task(self.purge_privileges_cache_job())
         self.loop.create_task(self.client.connect())
         self.client.loop.run_forever()
+
+    async def purge_privileges_cache_job(self, every=60):
+        """
+        Task that periodically calls self.privileges_cache.purge()
+
+        :param every: number of seconds between cache purges
+        :return:
+        """
+        self.logger.debug("Started purge privileges cache job")
+        try:
+            while True:
+                await asyncio.sleep(every)
+                self.privileges_cache.purge()
+        except asyncio.CancelledError:
+            self.logger.info("Stopped purge privileges cache job")
 
     def _waiter(self) -> Callable:
         """

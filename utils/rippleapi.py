@@ -1,6 +1,6 @@
 import logging
 import ujson
-from typing import Optional, Dict, Any, Callable, Type
+from typing import Optional, Dict, Any, Callable, Type, List
 
 import aiohttp
 import async_timeout
@@ -327,3 +327,20 @@ class RippleApiClient(RippleApiBaseClient):
             "name": username
         })
         return response.get("id", None)
+
+    async def get_user(
+        self, username: Optional[str] = None, user_id: Optional[int] = None
+    ) -> Optional[List[Dict[str, Any]]]:
+        has_username = username is not None
+        has_user_id = user_id is not None
+        if has_user_id == has_username:
+            raise ValueError("Either username or user_id must be provided")
+        if has_username:
+            params = {"nname": username}
+        else:
+            params = {"iid": user_id}
+        response = await self._request("users", "GET", params)
+        users = response.get("users", None)
+        if not users:
+            return None
+        return users

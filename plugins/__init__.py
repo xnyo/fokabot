@@ -3,6 +3,7 @@ from typing import Callable, Any, Tuple, Optional
 
 from schema import SchemaError, Or
 
+from constants.privileges import Privileges
 from singletons.bot import Bot
 from utils.rippleapi import RippleApiError
 
@@ -109,3 +110,18 @@ def errors(f: Callable) -> Callable:
 
 def base(f: Callable) -> Callable:
     return errors(f)
+
+
+def protected(required_privileges: Privileges) -> Callable:
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
+            privileges = await Bot().privileges_cache.get(username)
+            if not privileges:
+                return "Ripple API Error: Cannot get privileges"
+            if not privileges.has(required_privileges):
+                return "You don't have the required privileges to trigger this command."
+            return await f(
+                username, channel, *args, **kwargs
+            )
+        return wrapper
+    return decorator
