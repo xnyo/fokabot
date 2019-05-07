@@ -344,3 +344,9 @@ class RippleApiClient(RippleApiBaseClient):
         if not users:
             return None
         return users
+
+    async def set_allowed(self, user_id: int, new_allowed: int):
+        return await self._request("users/manage/set_allowed", method="POST", data={
+            "user_id": user_id,
+            "allowed": new_allowed
+        })
