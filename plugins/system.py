@@ -4,6 +4,7 @@ import datetime
 from schema import And, Use
 
 import plugins
+from constants.privileges import Privileges
 from singletons.bot import Bot
 
 bot = Bot()
@@ -11,6 +12,7 @@ bot = Bot()
 
 @bot.command("system info")
 @plugins.base
+@plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
 async def info(username: str, channel: str, message: str) -> Tuple:
     """
     !system info
@@ -34,6 +36,7 @@ async def info(username: str, channel: str, message: str) -> Tuple:
 @plugins.arguments(
     plugins.Arg("instant", And(str, Use(lambda x: x in ("now", "instant"))), default=False, optional=True)
 )
+@plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
 async def restart(username: str, channel: str, instant: bool) -> str:
     """
     !system restart [now/instant]
