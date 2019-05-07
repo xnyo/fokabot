@@ -55,6 +55,7 @@ class Bot:
         self.command_prefix = commands_prefix
         self._ready = self.ready = False
         self.reconnecting = False
+        self.disposing = False
 
         self.login_channels_queue = Queue()
         self.login_channels_left = set()
@@ -99,6 +100,7 @@ class Bot:
 
         :return:
         """
+        self.disposing = True
         self.logger.info("Disposing Fokabot")
         self.client.send("QUIT")
         await self.client.disconnect()
@@ -190,14 +192,36 @@ class Bot:
 
     @property
     def ready(self) -> bool:
+        """
+        Whether the bot is ready to process requests
+        (it has logged in and it has joined all channels)
+
+        :return: whether the bot is ready or not
+        """
         return self._ready
 
     @ready.setter
     def ready(self, value: bool) -> None:
+        """
+        Sets the "ready" flag.
+        If setting to True, it'll trigger the 'ready' event on the IRC bot as well.
+
+        :param value: new "ready" flag value
+        :return:
+        """
         self._ready = value
         if self.ready:
             self.client.trigger("ready")
 
-    def reset(self):
+    def reset(self) -> None:
+        """
+        Resets the bot. Must be called when reconnecting.
+        (Sets ready to False, clears joined channels set, empties the login channels queue)
+
+        :return:
+        """
         self.ready = False
         self.joined_channels.clear()
+        while not self.login_channels_queue.empty():
+            self.login_channels_queue.get_nowait()
+        self.login_channels_left.clear()

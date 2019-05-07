@@ -104,14 +104,31 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
 
 
 @bot.client.on("CLIENT_DISCONNECT")
-async def on_disconnect(**kwargs):
-    async def reconnect():
-        await bot.client.connect()
-        await bot.wait_for("ready")
-        bot.client.send("PRIVMSG", target="#admin", message="Reconnected.")
+async def on_disconnect(*args, **kwargs):
+    """
+    Called when the client is disconnected.
+    Tries to reconnect to the server.
+
+    :param kwargs:
+    :return:
+    """
+    if bot.disposing:
+        return
     if bot.reconnecting:
         bot.logger.warning("Got CLIENT_DISCONNECT, but the bot is already reconnecting.")
         return
+
+    async def reconnect():
+        """
+        Performs the actual reconnection, wait for the 'ready' event and notifies '#admin'
+
+        :return:
+        """
+        await bot.client.connect()
+        await bot.wait_for("ready")
+        # TODO: Configurable #admin
+        bot.client.send("PRIVMSG", target="#admin", message="Reconnected.")
+
     bot.reset()
     bot.reconnecting = True
     seconds = 5     # todo: backoff?
@@ -126,6 +143,5 @@ async def on_disconnect(**kwargs):
             bot.logger.warning(f"Connection failed! Retrying in {seconds} seconds")
             await asyncio.sleep(seconds)
         except asyncio.TimeoutError:
-            bot.logger.warning("No response from the server")
+            bot.logger.warning("Server timeout")
     bot.logger.info("Reconnected!")
-
