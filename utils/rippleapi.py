@@ -1,5 +1,6 @@
 import logging
 import ujson
+from datetime import datetime
 from typing import Optional, Dict, Any, Callable, Type, List
 
 import aiohttp
@@ -174,6 +175,7 @@ class RippleApiBaseClient(ABC):
                     ) as response:
                         # Decode the response and return it
                         # self.logger.debug(await response.text())
+                        # self.logger.debug(response.headers)
                         result = await response.json(loads=ujson.loads)
                 except (aiohttp.ServerConnectionError, aiohttp.ClientError, ValueError) as e:
                     raise RippleApiFatalError(e)
@@ -188,6 +190,10 @@ class RippleApiBaseClient(ABC):
     @abstractmethod
     def api_link(self) -> str:
         raise NotImplementedError()
+
+    @staticmethod
+    def datetime_to_rfc3339(d: datetime) -> str:
+        return d.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 class BanchoClientType(IntEnum):
@@ -346,7 +352,28 @@ class RippleApiClient(RippleApiBaseClient):
         return users
 
     async def set_allowed(self, user_id: int, new_allowed: int):
-        return await self._request("users/manage/set_allowed", method="POST", data={
+        return await self._request("users/manage/set_allowed", "POST", {
             "user_id": user_id,
             "allowed": new_allowed
         })
+
+    async def edit_user(
+        self, user_id: int, *,
+        username: Optional[str] = None, username_aka: Optional[str] = None,
+        country: Optional[str] = None, reset_userpage: Optional[bool] = None,
+        silence_reason: Optional[str] = None, silence_end: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        data = {"id": user_id}
+        for k, v in zip(
+            ("username", "username_aka", "country", "reset_userpage"),
+            (username, username_aka, country, reset_userpage)
+        ):
+            if v is not None:
+                data[k] = v
+        if silence_reason is not None or silence_end is not None:
+            data["silence_info"] = {}
+        if silence_reason is not None:
+            data["silence_info"]["reason"] = silence_reason
+        if silence_end is not None:
+            data["silence_info"]["end"] = RippleApiClient.datetime_to_rfc3339(silence_end)
+        return await self._request("users/edit", "POST", data)

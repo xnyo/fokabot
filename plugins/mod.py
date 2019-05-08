@@ -1,9 +1,11 @@
+import datetime
 from typing import Callable
 
-from schema import And, Use
+from schema import And, Use, Schema
 
 import plugins
 from constants.privileges import Privileges
+from constants.silence_units import SilenceUnit
 from singletons.bot import Bot
 from utils.rippleapi import NotFoundError
 
@@ -56,6 +58,7 @@ def set_allowed(new_api_allowed: int) -> Callable:
         )
         @plugins.protected(Privileges.ADMIN_BAN_USERS)
         async def decorator(username: str, channel: str, target_username: str) -> str:
+            # TODO: decorator
             user_id = await bot.ripple_api_client.what_id(target_username)
             if user_id is None:
                 return f"No such user ({target_username})"
@@ -83,3 +86,27 @@ async def unban(username: str, channel: str, target_username: str, user_id: int)
 @set_allowed(2)
 async def restrict(username: str, channel: str, target_username: str, user_id: int) -> str:
     return f"({target_username})[https://ripple.moe/u/{user_id}] has been restricted!"
+
+
+@bot.command("silence")
+@plugins.base
+@plugins.arguments(
+    plugins.Arg("target_username", Schema(str)),
+    plugins.Arg("how_many", Schema(Use(int))),
+    plugins.Arg("unit", And(str, Use(SilenceUnit), error="Unit must be s/m/h/d")),
+    plugins.Arg("reason", Schema(str), rest=True),
+)
+@plugins.protected(Privileges.ADMIN_CHAT_MOD)
+async def silence(
+    username: str, channel: str, target_username: str, how_many: int, unit: SilenceUnit, reason: str
+) -> str:
+    time_in_seconds = how_many * unit.seconds
+    # TODO: decorator
+    user_id = await bot.ripple_api_client.what_id(target_username)
+    if user_id is None:
+        return f"No such user ({target_username})"
+    await bot.ripple_api_client.edit_user(
+        user_id,
+        silence_end=datetime.datetime.utcnow() + datetime.timedelta(seconds=time_in_seconds),
+        silence_reason=reason
+    )

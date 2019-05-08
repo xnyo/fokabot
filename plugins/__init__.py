@@ -29,8 +29,9 @@ class Arg:
 
 
 class BotSyntaxError(Exception):
-    def __init__(self, args):
+    def __init__(self, args, extra=None):
         self.args = args
+        self.extra = extra
 
 
 def arguments(*args: Tuple[Arg]) -> Callable:
@@ -105,6 +106,8 @@ def errors(f: Callable) -> Callable:
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
             command_name = ' '.join(message.split(" ")[:command_name_words])
+            if e.extra is not None:
+                return e.extra
             return f"Syntax: {command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
     return wrapper
 
