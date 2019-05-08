@@ -12,9 +12,8 @@ Python with asyncio.
 - [x] Bot boilerplate (logging in, commands framework)
 - [x] !roll and other general commands
 - [x] !faq commands
-- [ ] !report
-- [ ] !alert/!alertuser
-- [ ] Moderation commands (!moderated, !kick, !ban, !restrict, !unban, !unrestrict, !silence, !removesilence)
+- [x] !alert/!alertuser
+- [x] Moderation commands (!moderated, !kick, !ban, !restrict, !unban, !silence, !removesilence)
 - [ ] !system
 - [ ] /np support and !bloodcat
 - [ ] !last

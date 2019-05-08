@@ -110,3 +110,19 @@ async def silence(
         silence_end=datetime.datetime.utcnow() + datetime.timedelta(seconds=time_in_seconds),
         silence_reason=reason
     )
+    return f"{username} has been silenced for {time_in_seconds} seconds for the following reason: '{reason}'"
+
+
+@bot.command("removesilence")
+@plugins.base
+@plugins.arguments(
+    plugins.Arg("target_username", Schema(str))
+)
+@plugins.protected(Privileges.ADMIN_CHAT_MOD)
+async def silence(username: str, channel: str, target_username: str) -> str:
+    # TODO: decorator
+    user_id = await bot.ripple_api_client.what_id(target_username)
+    if user_id is None:
+        return f"No such user ({target_username})"
+    await bot.ripple_api_client.edit_user(user_id, silence_end=datetime.date(1970, 1, 1))
+    return f"{username}'s silence removed"
