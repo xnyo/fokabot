@@ -19,7 +19,7 @@ class Config:
             "BOT_NICKNAME": config("BOT_NICKNAME", default="FokaBot"),
             "BOT_PASSWORD": config("BOT_PASSWORD", default=""),
 
-            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq,alert,mod,system", cast=Csv(str)),
+            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq,alert,mod,system,pp", cast=Csv(str)),
 
             "COMMANDS_PREFIX": config("COMMANDS_PREFIX", default="!"),
 

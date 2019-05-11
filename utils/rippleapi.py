@@ -1,12 +1,14 @@
 import logging
 import ujson
 from datetime import datetime
-from typing import Optional, Dict, Any, Callable, Type, List
+from typing import Optional, Dict, Any, Callable, List
 
 import aiohttp
 import async_timeout
 from abc import ABC, abstractmethod
 from enum import IntEnum, auto
+
+from constants.game_modes import GameMode
 
 
 class RippleApiError(Exception):
@@ -377,3 +379,35 @@ class RippleApiClient(RippleApiBaseClient):
         if silence_end is not None:
             data["silence_info"]["end"] = RippleApiClient.datetime_to_rfc3339(silence_end)
         return await self._request("users/edit", "POST", data)
+
+    async def _scores(
+        self,
+        sub_url: str,
+        user_id: Optional[int] = None,
+        username: Optional[str] = None,
+        game_mode: Optional[GameMode] = None
+    ) -> List[Dict[str, Any]]:
+        if bool(user_id is None) == bool(username is None):
+            raise ValueError("You must provide either user_id or username")
+        d = {k: v for k, v in {"id": user_id, "name": username, "mode": int(game_mode) if game_mode is not None else None}.items() if v is not None}
+        r = await self._request(f"users/scores/{sub_url}", "GET", d)
+        scores = r.get("scores", [])
+        if scores is None:
+            return []
+        return scores
+
+    async def recent_scores(
+        self,
+        user_id: Optional[int] = None,
+        username: Optional[str] = None,
+        game_mode: Optional[GameMode] = None
+    ) -> List[Dict[str, Any]]:
+        return await self._scores("recent", user_id, username, game_mode)
+
+    async def best_scores(
+        self,
+        user_id: Optional[int] = None,
+        username: Optional[str] = None,
+        game_mode: Optional[GameMode] = None
+    ) -> List[Dict[str, Any]]:
+        return await self._scores("best", user_id, username, game_mode)
