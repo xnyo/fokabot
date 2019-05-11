@@ -9,8 +9,6 @@ bot = Bot()
 @bot.command("last")
 @plugins.base
 async def last(username: str, channel: str, *args, **kwargs) -> str:
-    print(args)
-    print(kwargs)
     recent_scores = await bot.ripple_api_client.recent_scores(username=username)
     if not recent_scores:
         return "You have no scores :("
