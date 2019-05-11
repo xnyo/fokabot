@@ -22,6 +22,6 @@ async def alert(username: str, channel: str, message: str) -> None:
     plugins.Arg("message", Schema(str), rest=True)
 )
 @plugins.protected(Privileges.ADMIN_SEND_ALERTS)
-@plugins.resolve_username_to_client()
+@plugins.resolve_target_username_to_client()
 async def alert(username: str, channel: str, api_identifier: str, message: str, **kwargs) -> None:
     await bot.bancho_api_client.alert(api_identifier, message)

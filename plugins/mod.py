@@ -25,7 +25,7 @@ async def moderated(username: str, channel: str, on: int) -> str:
 @plugins.base
 @plugins.arguments(plugins.Arg("target_username", And(str)))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.resolve_username_to_client()
+@plugins.resolve_target_username_to_client()
 async def kick(username: str, channel: str, api_identifier: str, target_username: str) -> str:
     try:
         await bot.bancho_api_client.kick(api_identifier)
@@ -41,7 +41,7 @@ async def kick(username: str, channel: str, api_identifier: str, target_username
     plugins.Arg("message", And(str), rest=True)
 )
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.resolve_username_to_client()
+@plugins.resolve_target_username_to_client()
 async def kick(username: str, channel: str, api_identifier: str, message: str) -> str:
     try:
         await bot.bancho_api_client.rtx(api_identifier, message)

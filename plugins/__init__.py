@@ -64,7 +64,7 @@ def arguments(*args: Tuple[Arg]) -> Callable:
     return decorator
 
 
-def resolve_username_to_client(game: bool = True) -> Callable:
+def resolve_target_username_to_client(game: bool = True) -> Callable:
     def decorator(f: Callable) -> Callable:
         async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
             user_id = await Bot().ripple_api_client.what_id(target_username)
