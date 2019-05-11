@@ -81,6 +81,15 @@ def resolve_username_to_client(game: bool = True) -> Callable:
     return decorator
 
 
+def resolve_target_username_to_user_id(f: Callable) -> Callable:
+    async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
+        user_id = await Bot().ripple_api_client.what_id(target_username)
+        if user_id is None:
+            return f"No such user ({target_username})"
+        return await f(username, channel, *args, target_username=target_username, target_user_id=user_id, **kwargs)
+    return wrapper
+
+
 def _private_public_wrapper(private: bool, f: Callable) -> Callable:
     async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
         if channel.startswith("#") == private:  # 🅱️onchi insegna
@@ -129,3 +138,4 @@ def protected(required_privileges: Privileges) -> Callable:
             )
         return wrapper
     return decorator
+

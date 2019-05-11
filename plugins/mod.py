@@ -57,35 +57,32 @@ def set_allowed(new_api_allowed: int) -> Callable:
             plugins.Arg("target_username", And(str))
         )
         @plugins.protected(Privileges.ADMIN_BAN_USERS)
-        async def decorator(username: str, channel: str, target_username: str) -> str:
-            # TODO: decorator
-            user_id = await bot.ripple_api_client.what_id(target_username)
-            if user_id is None:
-                return f"No such user ({target_username})"
-            await bot.ripple_api_client.set_allowed(user_id, new_api_allowed)
-            return await f(username, channel, target_username, user_id=user_id)
+        @plugins.resolve_target_username_to_user_id
+        async def decorator(username: str, channel: str, target_username: str, target_user_id: int) -> str:
+            await bot.ripple_api_client.set_allowed(target_user_id, new_api_allowed)
+            return await f(username, channel, target_username, target_user_id=target_user_id)
         return decorator
     return wrapper
 
 
 @bot.command("ban")
 @set_allowed(0)
-async def ban(username: str, channel: str, target_username: str, user_id: int) -> str:
-    return f"({target_username})[https://ripple.moe/u/{user_id}] has been banned!"
+async def ban(username: str, channel: str, target_username: str, target_user_id: int) -> str:
+    return f"({target_username})[https://ripple.moe/u/{target_user_id}] has been banned!"
 
 
 @bot.command("unban")
 @set_allowed(1)
-async def unban(username: str, channel: str, target_username: str, user_id: int) -> str:
-    return f"({target_username})[https://ripple.moe/u/{user_id}] has been unbanned!"
+async def unban(username: str, channel: str, target_username: str, target_user_id: int) -> str:
+    return f"({target_username})[https://ripple.moe/u/{target_user_id}] has been unbanned!"
 
 
 # TODO: There's no way to restrict someone from the API afaik.
 #  Ask howl if I can implement set_allowed with privileges=2 for restricted
 @bot.command("restrict")
 @set_allowed(2)
-async def restrict(username: str, channel: str, target_username: str, user_id: int) -> str:
-    return f"({target_username})[https://ripple.moe/u/{user_id}] has been restricted!"
+async def restrict(username: str, channel: str, target_username: str, target_user_id: int) -> str:
+    return f"({target_username})[https://ripple.moe/u/{target_user_id}] has been restricted!"
 
 
 @bot.command("silence")
@@ -97,20 +94,19 @@ async def restrict(username: str, channel: str, target_username: str, user_id: i
     plugins.Arg("reason", Schema(str), rest=True),
 )
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.resolve_target_username_to_user_id
 async def silence(
-    username: str, channel: str, target_username: str, how_many: int, unit: SilenceUnit, reason: str
+    username: str, channel: str, target_username: str,
+    target_user_id: int, how_many: int, unit: SilenceUnit,
+    reason: str
 ) -> str:
     time_in_seconds = how_many * unit.seconds
-    # TODO: decorator
-    user_id = await bot.ripple_api_client.what_id(target_username)
-    if user_id is None:
-        return f"No such user ({target_username})"
     await bot.ripple_api_client.edit_user(
-        user_id,
+        target_user_id,
         silence_end=datetime.datetime.utcnow() + datetime.timedelta(seconds=time_in_seconds),
         silence_reason=reason
     )
-    return f"{username} has been silenced for {time_in_seconds} seconds for the following reason: '{reason}'"
+    return f"{target_username} has been silenced for {time_in_seconds} seconds for the following reason: '{reason}'"
 
 
 @bot.command("removesilence")
@@ -119,10 +115,7 @@ async def silence(
     plugins.Arg("target_username", Schema(str))
 )
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
-async def silence(username: str, channel: str, target_username: str) -> str:
-    # TODO: decorator
-    user_id = await bot.ripple_api_client.what_id(target_username)
-    if user_id is None:
-        return f"No such user ({target_username})"
-    await bot.ripple_api_client.edit_user(user_id, silence_end=datetime.date(1970, 1, 1))
-    return f"{username}'s silence removed"
+@plugins.resolve_target_username_to_user_id
+async def remove_silence(username: str, channel: str, target_username: str, target_user_id: int) -> str:
+    await bot.ripple_api_client.edit_user(target_user_id, silence_end=datetime.date(1970, 1, 1))
+    return f"{target_username}'s silence removed"
