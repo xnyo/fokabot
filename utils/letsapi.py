@@ -60,7 +60,7 @@ class LetsPPResponse:
         return next((GameMode(i) for v, i in enumerate(self._pp) if v is not None and v > 0), GameMode.STANDARD)
 
     @property
-    def mod_ar(self) -> float:
+    def modded_ar(self) -> float:
         if self.mods & Mod.EASY:
             return max(0.0, self.ar / 2)
         if self.mods & Mod.HARD_ROCK:
@@ -76,7 +76,7 @@ class LetsPPResponse:
         else:
             message += f"{self.accuracy:.2f}%: {self.pp}pp"
         original_ar = self.ar
-        mod_ar = self.mod_ar
+        mod_ar = self.modded_ar
         message += \
             f" | {self.bpm}♫" \
             f" | AR{self.ar}{f' ({mod_ar:.2f})' if mod_ar != original_ar else ''}" \
