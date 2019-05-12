@@ -72,13 +72,7 @@ class LetsPPResponse:
         message += f"+{str(self.mods)}" if self.mods != Mod.NO_MOD else ""
         message += "  "
         if self.has_multiple_pp:
-            message += " | ".join(
-                f"{perc}%: {x}pp"
-                for perc, x in zip(
-                    (100, 99, 98, 95),
-                    (self.pp_100, self.pp_99, self.pp_98, self.pp_95)
-                )
-            )
+            message += " | ".join(f"{perc}%: {x}pp" for perc, x in zip((100, 99, 98, 95), self._pp))
         else:
             message += f"{self.accuracy:.2f}%: {self.pp}pp"
         original_ar = self.ar
