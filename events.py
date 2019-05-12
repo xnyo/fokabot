@@ -87,14 +87,17 @@ def on_ping(message: str, **_) -> None:
 @bot.client.on("PRIVMSG")
 async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
     # TODO: Add support for non-prefix commands
-    if host.lower() == bot.nickname.lower() or not message.startswith(bot.command_prefix):
+    is_command = message.startswith(bot.command_prefix)
+    is_action = message.startswith("\x01ACTION")
+    bot.logger.debug(f"{host}: {message} (cmd:{is_command}, act:{is_action})")
+    if host.lower() == bot.nickname.lower() or (not is_command and not is_action):
         return
     if target.lower() == bot.nickname.lower():
         target = host
-    raw_message = message.lstrip(bot.command_prefix).lower()
-    for k, v in bot.command_handlers.items():
-        if raw_message.startswith(k) and (len(raw_message) <= len(k) or raw_message[len(k)] == " "):
-            bot.logger.debug(f"Triggered {v} ({k})")
+    raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
+    for k, v in (bot.command_handlers if is_command else bot.action_handlers).items():
+        if raw_message.startswith(k):
+            bot.logger.debug(f"Triggered {v} ({k}) [{'command' if is_command else 'action'}]")
             command_name_words = len(k.split(" "))
             result = await v(
                 username=host, channel=target, message=message,

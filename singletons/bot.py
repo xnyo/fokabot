@@ -52,6 +52,7 @@ class Bot:
             self.logger.warning("SSL is disabled")
         self.joined_channels = set()
         self.command_handlers: Dict[str, Callable] = {}
+        self.action_handlers: Dict[str, Callable] = {}
         self.command_prefix = commands_prefix
         self._ready = self.ready = False
         self.reconnecting = False
@@ -167,7 +168,9 @@ class Bot:
         """
         return self._waiter()
 
-    def command(self, command_name: str, func: Optional[Callable] = None) -> Callable:
+    def command(
+        self, command_name: Union[str, List[str], Tuple[str]], action: bool = False, func: Optional[Callable] = None
+    ) -> Callable:
         """
         Registers a new command (decorator)
         ```
@@ -178,15 +181,19 @@ class Bot:
         ```
 
         :param command_name: command name
+        :param action: if True, the command "x" will be triggered when "\x01ACTION x" is sent.
         :param func: function to call. Must accept two arguments (username, channel) and return a str or None.
         :return:
         """
         if func is None:
-            return functools.partial(self.command, command_name)  # type: ignore
+            return functools.partial(self.command, command_name, action)  # type: ignore
         wrapped = func
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
-        self.command_handlers[command_name.lower()] = wrapped
+        if type(command_name) not in (list, tuple):
+            command_name = (command_name,)
+        for c in command_name:
+            (self.action_handlers if action else self.command_handlers)[c.lower()] = wrapped
         # Always return original
         return func
 
