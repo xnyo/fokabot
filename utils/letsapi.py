@@ -69,7 +69,7 @@ class LetsPPResponse:
 
     def __str__(self) -> str:
         message = f"{self.song_name}"
-        message += f"+{self.mods.readable()}" if self.mods != Mod.NO_MOD else ""
+        message += f"+{str(self.mods)}" if self.mods != Mod.NO_MOD else ""
         message += "  "
         if self.has_multiple_pp:
             message += " | ".join(
