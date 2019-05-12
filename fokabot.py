@@ -8,6 +8,7 @@ from singletons.bot import Bot
 
 
 # Logging
+from utils.letsapi import LetsApiClient
 from utils.rippleapi import BanchoApiClient, RippleApiClient
 
 logging.basicConfig(level=logging.DEBUG if Config()["DEBUG"] else logging.INFO)
@@ -38,6 +39,9 @@ Bot(
     ripple_api_client=RippleApiClient(
         Config()["RIPPLE_API_TOKEN"],
         Config()["RIPPLE_API_BASE"]
+    ),
+    lets_api_client=LetsApiClient(
+        Config()["LETS_API_BASE"]
     ),
     http_host=Config()["HTTP_HOST"],
     http_port=Config()["HTTP_PORT"]

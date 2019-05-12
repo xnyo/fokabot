@@ -29,6 +29,8 @@ class Config:
             "BANCHO_API_BASE": config("BANCHO_API_BASE", default="https://c.ripple.moe"),
             "BANCHO_API_TOKEN": config("BANCHO_API_TOKEN", default=token),
 
+            "LETS_API_BASE": config("LETS_API_BASE", default="https://ripple.moe/letsapi"),
+
             "HTTP_HOST": config("HTTP_HOST", default="127.0.0.1"),
             "HTTP_PORT": config("HTTP_PORT", default=4334),
             "INTERNAL_API_SECRET": config("INTERNAL_API_SECRET"),

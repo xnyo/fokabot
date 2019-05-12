@@ -4,13 +4,14 @@ from asyncio import Queue
 
 import functools
 import logging
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, Union, List, Tuple
 
 from aiohttp import web
 
 from bottom import Client
 
 from utils import singleton
+from utils.letsapi import LetsApiClient
 from utils.privileges_cache import PrivilegesCache
 from utils.rippleapi import BanchoApiClient, RippleApiClient
 
@@ -22,8 +23,11 @@ class Bot:
     def __init__(
         self, *, host: str = "irc.ripple.moe", port: int = 6667,
         ssl: bool = True, nickname: str = "FokaBot", password: str = "",
-        commands_prefix: str = "!", bancho_api_client: BanchoApiClient = None,
-        ripple_api_client: RippleApiClient = None, http_host: str = None, http_port: int = None
+        commands_prefix: str = "!",
+        bancho_api_client: BanchoApiClient = None,
+        ripple_api_client: RippleApiClient = None,
+        lets_api_client: LetsApiClient = None,
+        http_host: str = None, http_port: int = None
     ):
         """
         Initializes Fokabot
@@ -40,6 +44,7 @@ class Bot:
         self.client: Client = Client(host, port, ssl=ssl)
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
+        self.lets_api_client = lets_api_client
         self.web_app: web.Application = web.Application()
         self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
