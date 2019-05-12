@@ -303,7 +303,7 @@ class BanchoApiClient(RippleApiBaseClient):
         """
         return await self._request("system", "GET")
 
-    @RippleApiBaseClient.bind_error_code(406, False)
+    @RippleApiBaseClient.bind_error_code(409, False)
     async def graceful_shutdown(self) -> bool:
         """
         Gracefully shuts down bancho
@@ -312,6 +312,17 @@ class BanchoApiClient(RippleApiBaseClient):
                  False if the server is already restarting.
         """
         await self._request("system/graceful_shutdown", "POST")
+        return True
+
+    @RippleApiBaseClient.bind_error_code(409, False)
+    async def cancel_graceful_shutdown(self) -> bool:
+        """
+        Cancels a graceful shutdown, if it exists.
+
+        :return: True if the request was accepted,
+                 False if the server is not restarting.
+        """
+        await self._request("system/graceful_shutdown", "DELETE")
         return True
 
 

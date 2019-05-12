@@ -34,15 +34,24 @@ async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
 
 @bot.command("system restart")
 @plugins.base
+@plugins.arguments(
+    plugins.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
+)
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def restart(username: str, channel: str, message: str, **kwargs) -> str:
+async def restart(username: str, channel: str, cancel: bool, **kwargs) -> str:
     """
-    !system restart
+    !system restart [cancel]
 
     :param username:
     :param channel:
+    :param cancel:
     :return:
     """
+    if cancel:
+        if await bot.bancho_api_client.cancel_graceful_shutdown():
+            return "Server shutdown cancelled."
+        return "The server is not shutting down."
+
     if await bot.bancho_api_client.graceful_shutdown():
         return "The server will be restarted soon"
     return "The server is already restarting"
