@@ -14,7 +14,7 @@ bot = Bot()
 @bot.command("system info")
 @plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def info(username: str, channel: str, message: str) -> Tuple:
+async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
     """
     !system info
 
@@ -34,21 +34,16 @@ async def info(username: str, channel: str, message: str) -> Tuple:
 
 @bot.command("system restart")
 @plugins.base
-@plugins.arguments(
-    plugins.Arg("instant", And(str, Use(lambda x: x in ("now", "instant"))), default=False, optional=True)
-)
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def restart(username: str, channel: str, instant: bool) -> str:
+async def restart(username: str, channel: str, message: str, **kwargs) -> str:
     """
-    !system restart [now/instant]
+    !system restart
 
     :param username:
     :param channel:
     :return:
     """
-    r = await bot.bancho_api_client.graceful_shutdown()
-    print(r)
-    if r:
+    if await bot.bancho_api_client.graceful_shutdown():
         return "The server will be restarted soon"
     return "The server is already restarting"
 
@@ -56,7 +51,7 @@ async def restart(username: str, channel: str, instant: bool) -> str:
 @bot.command("system privcache info")
 @plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def info(username: str, channel: str, *args, **kwargs) -> str:
+async def privcache_info(username: str, channel: str, *args, **kwargs) -> str:
     """
     !system privcache info
 
@@ -71,7 +66,7 @@ async def info(username: str, channel: str, *args, **kwargs) -> str:
     plugins.Arg("target_username", And(str, Use(general.safefify_username))),
 )
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def info(username: str, channel: str, target_username: str) -> str:
+async def privcache_remove(username: str, channel: str, target_username: str, **kwargs) -> str:
     """
     !system privcache remove <username>
 
@@ -87,7 +82,7 @@ async def info(username: str, channel: str, target_username: str) -> str:
 @bot.command("system privcache purge")
 @plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def info(username: str, channel: str, *args, **kwargs) -> str:
+async def privcache_purge(username: str, channel: str, *args, **kwargs) -> str:
     """
     !system privcache purge
     Purges the privileges cache
