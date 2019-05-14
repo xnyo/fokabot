@@ -117,6 +117,8 @@ class Bot:
         :return:
         """
         self.disposing = True
+        for task in self.periodic_tasks:
+            task.cancel()
         self.logger.info("Disposing Fokabot")
         self.client.send("QUIT")
         await self.client.disconnect()
