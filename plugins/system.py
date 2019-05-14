@@ -38,9 +38,9 @@ async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
     plugins.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
 )
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-async def restart(username: str, channel: str, cancel: bool, **kwargs) -> str:
+async def shutdown(username: str, channel: str, cancel: bool, **kwargs) -> str:
     """
-    !system restart [cancel]
+    !system shutdown [cancel]
 
     :param username:
     :param channel:
