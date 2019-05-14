@@ -32,7 +32,7 @@ async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
     )
 
 
-@bot.command("system restart")
+@bot.command("system shutdown")
 @plugins.base
 @plugins.arguments(
     plugins.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
@@ -84,7 +84,7 @@ async def privcache_remove(username: str, channel: str, target_username: str, **
     """
     if target_username not in bot.privileges_cache:
         return f"{target_username} is not in the privileges cache."
-    bot.privileges_cache.remove(target_username)
+    del bot.privileges_cache[target_username]
     return f"{target_username} has been removed from the privileges cache."
 
 
