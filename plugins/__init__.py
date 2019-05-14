@@ -48,12 +48,15 @@ def arguments(*args: Tuple[Arg]) -> Callable:
                 parts = [y for y in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
             for arg, part in zip_longest(args, parts, fillvalue=None):
                 try:
+                    if arg is None:
+                        # More arguments than needed (zip_longest)
+                        raise ValueError()
                     v = arg.schema.validate(part)
                     if v is None:
                         raise ValueError()
                     validated_args[arg.key] = v
                 except (SchemaError, ValueError) as e:
-                    if arg.optional:
+                    if arg is not None and arg.optional:
                         validated_args[arg.key] = arg.default
                     else:
                         raise BotSyntaxError(args)
