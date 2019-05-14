@@ -78,9 +78,9 @@ class LetsPPResponse:
         original_ar = self.ar
         mod_ar = self.modded_ar
         message += \
-            f" | {self.bpm}♫" \
-            f" | AR{self.ar}{f' ({mod_ar:.2f})' if mod_ar != original_ar else ''}" \
-            f" | {self.stars:.2f}★"
+            f" | ♪ {self.bpm}" \
+            f" | AR {self.ar}{f' ({mod_ar:.2f})' if mod_ar != original_ar else ''}" \
+            f" | ★ {self.stars:.2f}"
         return message
 
 
