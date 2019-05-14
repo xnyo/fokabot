@@ -14,6 +14,7 @@ bot = Bot()
 
 @bot.command("moderated")
 @plugins.base
+@plugins.public_only
 @plugins.arguments(plugins.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True, optional=True))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
 async def moderated(username: str, channel: str, on: int) -> str:
