@@ -12,6 +12,8 @@ from bottom import Client
 
 from utils import singleton
 from utils.letsapi import LetsApiClient
+from utils.np_storage import NpStorage
+from utils.periodic_tasks import periodic_task
 from utils.privileges_cache import PrivilegesCache
 from utils.rippleapi import BanchoApiClient, RippleApiClient
 
@@ -47,6 +49,8 @@ class Bot:
         self.lets_api_client = lets_api_client
         self.web_app: web.Application = web.Application()
         self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
+        self.np_storage: NpStorage = NpStorage()
+        self.periodic_tasks: List[asyncio.Task] = []
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
             raise RuntimeError("You must provide a valid BanchoApiClient")
         self.nickname = nickname
@@ -89,7 +93,13 @@ class Bot:
         self.loop.run_until_complete(api_runner.setup())
         site = web.TCPSite(api_runner, self.http_host, self.http_port)
         asyncio.ensure_future(site.start())
-        self.loop.create_task(self.purge_privileges_cache_job())
+        self.periodic_tasks.extend(
+            (
+                self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
+                self.loop.create_task(periodic_task(seconds=60)(self.np_storage.purge))
+            )
+        )
+
         self.loop.create_task(self.client.connect())
         signal.signal(signal.SIGINT, lambda s, f: self.loop.stop())
         try:
@@ -110,21 +120,6 @@ class Bot:
         self.logger.info("Disposing Fokabot")
         self.client.send("QUIT")
         await self.client.disconnect()
-
-    async def purge_privileges_cache_job(self, every=60):
-        """
-        Task that periodically calls self.privileges_cache.purge()
-
-        :param every: number of seconds between cache purges
-        :return:
-        """
-        self.logger.debug("Started purge privileges cache job")
-        try:
-            while True:
-                await asyncio.sleep(every)
-                self.privileges_cache.purge()
-        except asyncio.CancelledError:
-            self.logger.info("Stopped purge privileges cache job")
 
     def _waiter(self) -> Callable:
         """

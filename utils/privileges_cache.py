@@ -1,25 +1,20 @@
 import logging
-import time
+import datetime
 from typing import Dict, Optional, TypeVar, Any
 
 from constants.privileges import Privileges
 from utils.rippleapi import RippleApiClient
-from utils import general
+from utils.cache import CacheElement, CacheStorage, SafeUsernamesDict
 
 
-class CachedPrivileges:
-    def __init__(self, privileges: Privileges, expiration_time: int = 1800):
+class CachedPrivileges(CacheElement):
+    def __init__(self, privileges: Privileges, expiration_delta: datetime.timedelta = datetime.timedelta(minutes=30)):
+        super(CachedPrivileges, self).__init__(expiration_delta=expiration_delta)
         self.privileges = privileges
-        self.add_time = int(time.time())
-        self.expiration_time = expiration_time
 
     @classmethod
     def api_user_factory(cls, user: Dict[str, Any]) -> "CachedPrivilegesT":
         return cls(Privileges(user["privileges"]))
-
-    @property
-    def is_expired(self) -> bool:
-        return int(time.time()) - self.add_time > self.expiration_time
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}> " + \
@@ -35,31 +30,23 @@ class CachedPrivileges:
 CachedPrivilegesT = TypeVar("CachedPrivilegesT", bound=CachedPrivileges)
 
 
-class PrivilegesCache:
+class PrivilegesCache(CacheStorage):
     logger = logging.getLogger("privileges_cache")
 
     def __init__(self, ripple_api_client: RippleApiClient):
-        self._data: Dict[str, CachedPrivileges] = {}
+        super(PrivilegesCache, self).__init__()
+        self._data: SafeUsernamesDict[str, CachedPrivileges] = SafeUsernamesDict()
         self._ripple_api_client: RippleApiClient = ripple_api_client
 
     async def get(self, username: str) -> Optional[Privileges]:
-        username = general.safefify_username(username)
-        await self.cache_privileges(username)
+        await self._cache_privileges(username)
         cached_privileges = self._data.get(username, None)
         self.logger.debug(f"Cached privileges for user {username}: {cached_privileges}")
         if cached_privileges is None:
             return None
         return cached_privileges.privileges
 
-    def remove(self, username: str) -> None:
-        username = general.safefify_username(username)
-        try:
-            del self._data[username]
-        except KeyError:
-            pass
-
-    async def cache_privileges(self, username: str, force: bool = False):
-        username = general.safefify_username(username)
+    async def _cache_privileges(self, username: str, force: bool = False):
         if not force:
             cached_privileges = self._data.get(username, None)
             if cached_privileges is not None and not cached_privileges.is_expired:
@@ -72,19 +59,11 @@ class PrivilegesCache:
             return
         self._data[username] = CachedPrivileges.api_user_factory(users[0])
 
-    def purge(self) -> None:
-        self.logger.debug(f"Deleting expired cached privileges")
-        to_delete = []
-        for k, v in self._data.items():
-            if v.is_expired:
-                to_delete.append(k)
-        for k in to_delete:
-            del self._data[k]
-        self.logger.debug(f"Deleted {len(to_delete)} cached privileges ({to_delete})")
+    def __getitem__(self, item: int = None) -> None:
+        raise RuntimeError(
+            "This cache is async and does not support __getitem__ and __setitem__. "
+            "Please use the get() coroutine instead."
+        )
 
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def __contains__(self, item: str) -> bool:
-        item = general.safefify_username(item)
-        return item in self._data
+    def __setitem__(self, key: int, value: CachedPrivileges) -> None:
+        self.__getitem__()

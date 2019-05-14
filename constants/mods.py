@@ -1,3 +1,4 @@
+import operator
 from functools import reduce
 
 from enum import IntFlag
@@ -59,8 +60,16 @@ class Mod(IntFlag):
         :return: Mod instance
         """
         return reduce(
-            lambda x, y: x | y,
+            operator.or_,
             (_NP.get(x.lstrip("+-"), Mod.NO_MOD) for x in mods_str.strip().split(" "))
+        )
+
+    @classmethod
+    def short_factory(cls, readable_mods: str) -> "Mod":
+        readable_mods = readable_mods.strip()
+        return reduce(
+            operator.or_,
+            (_MODS.get(readable_mods[i:i + 2].upper(), Mod.NO_MOD) for i in range(0, len(readable_mods), 2))
         )
 
 
@@ -94,6 +103,7 @@ _ACRONYMS = {
     Mod.KEY2: "2K",
     # Mod.SCOREV2: "score v2",
 }
+_MODS = {v: k for k, v in _ACRONYMS.items()}
 _NP = {
     "Easy": Mod.EASY,
     "NoFail": Mod.NO_FAIL,
