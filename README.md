@@ -14,9 +14,9 @@ Python with asyncio.
 - [x] !faq commands
 - [x] !alert/!alertuser
 - [x] Moderation commands (!moderated, !kick, !ban, !restrict, !unban, !silence, !removesilence)
-- [ ] !system
-- [ ] /np support and !bloodcat
-- [ ] !last
+- [x] !system
+- [x] /np support
+- [x] !last
 - [ ] !mp
 - [ ] !switchserver (?)
 
