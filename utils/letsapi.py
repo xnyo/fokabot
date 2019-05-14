@@ -72,9 +72,9 @@ class LetsPPResponse:
         message += f"+{str(self.mods)}" if self.mods != Mod.NO_MOD else ""
         message += "  "
         if self.has_multiple_pp:
-            message += " | ".join(f"{perc}%: {x}pp" for perc, x in zip((100, 99, 98, 95), self._pp))
+            message += " | ".join(f"{perc}%: {x:.2f}pp" for perc, x in zip((100, 99, 98, 95), self._pp))
         else:
-            message += f"{self.accuracy:.2f}%: {self.pp}pp"
+            message += f"{self.accuracy:.2f}%: {self.pp:.2f}pp"
         original_ar = self.ar
         mod_ar = self.modded_ar
         message += \
@@ -97,6 +97,7 @@ class LetsApiClient:
             with async_timeout.timeout(self.timeout):
                 async with session.get(f"{self.base}/{url}", params=params) as response:
                     try:
+                        self.logger.debug(f"LETS request: GET {self.base}/{url} [{params}]")
                         return await response.json(loads=ujson.loads)
                     except (ValueError, json.JSONDecodeError):
                         raise FatalLetsApiError(response)
@@ -109,7 +110,7 @@ class LetsApiClient:
     ) -> LetsPPResponse:
         params = {"b": beatmap_id, "m": int(mods), "g": int(game_mode)}
         if accuracy is not None:
-            params["a"] = accuracy
+            params["a"] = str(accuracy)
         r = await self._request("v1/pp", params)
         status = r.get("status")
         if status != 200:

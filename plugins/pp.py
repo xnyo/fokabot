@@ -161,3 +161,29 @@ async def with_(username: str, channel: str, mods: Mod, *, np_info: NpInfo, **kw
     :return:
     """
     np_info.mods = mods
+
+
+@bot.command("acc")
+@plugins.base
+@plugins.private_only
+@plugins.arguments(plugins.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)))
+@resolve_np_info
+@np_info_response
+async def acc(username: str, channel: str, accuracy: float, *, np_info: NpInfo, **kwargs) -> None:
+    """
+    !acc accuracy
+    Returns PP information about the most recent map sent by this user to the bot with /np
+    "accuracy" is the input accuracy, 0 < accuracy <= 100
+
+    :param username:
+    :param channel:
+    :param accuracy:
+    :param np_info:
+    :param kwargs:
+    :return:
+    """
+    if accuracy in (100, 99, 98, 95):
+        # Use pre-computed acc values from db
+        np_info.accuracy = None
+    else:
+        np_info.accuracy = accuracy
