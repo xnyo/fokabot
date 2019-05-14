@@ -4,6 +4,7 @@ from schema import Schema
 from tinydb import where
 
 import plugins
+from constants.privileges import Privileges
 from singletons.bot import Bot
 
 
@@ -13,7 +14,7 @@ bot = Bot()
 @bot.command("faq")
 @plugins.base
 @plugins.arguments(plugins.Arg("topic", Schema(str)))
-async def faq(username: str, channel: str, topic: str) -> str:
+async def faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
     """
     !faq <topic>
 
@@ -36,7 +37,8 @@ async def faq(username: str, channel: str, topic: str) -> str:
     plugins.Arg("topic", Schema(str)),
     plugins.Arg("new_response", Schema(str), rest=True),
 )
-async def mod_faq(username: str, channel: str, topic: str, new_response: str) -> str:
+@plugins.protected(Privileges.ADMIN_CHAT_MOD)
+async def mod_faq(username: str, channel: str, topic: str, new_response: str, *args, **kwargs) -> str:
     """
     !modfaq <topic> <new_response>
     Edits an existing topic in tinydb. Doesn't do anything if the specified topic does not exist.
@@ -54,7 +56,7 @@ async def mod_faq(username: str, channel: str, topic: str, new_response: str) ->
 
 @bot.command("lsfaq")
 @plugins.base
-async def ls_faq(username: str, channel: str) -> str:
+async def ls_faq(username: str, channel: str, *args, **kwargs) -> str:
     """
     !lsfaq
 
@@ -69,7 +71,8 @@ async def ls_faq(username: str, channel: str) -> str:
 @bot.command("delfaq")
 @plugins.base
 @plugins.arguments(plugins.Arg("topic", Schema(str)))
-async def del_faq(username: str, channel: str, topic: str) -> str:
+@plugins.protected(Privileges.ADMIN_CHAT_MOD)
+async def del_faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
     """
     !delfaq <topic>
     Deletes a FAQ topic from tinydb, if it exists.
