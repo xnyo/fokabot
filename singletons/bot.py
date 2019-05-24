@@ -198,7 +198,7 @@ class Bot:
         for c in command_name:
             (self.action_handlers if action else self.command_handlers)[c.lower()] = wrapped
         # Always return original
-        return func
+        return functools.partial(func, command_name=command_name)
 
     @property
     def ready(self) -> bool:

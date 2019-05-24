@@ -86,7 +86,7 @@ async def restrict(username: str, channel: str, target_username: str, target_use
 @plugins.arguments(
     plugins.Arg("target_username", Schema(str)),
     plugins.Arg("how_many", Schema(Use(int))),
-    plugins.Arg("unit", And(str, Use(SilenceUnit), error="Unit must be s/m/h/d")),
+    plugins.Arg("unit", And(str, Use(SilenceUnit), error="Unit must be s/m/h/d"), example="s/m/h/d"),
     plugins.Arg("reason", Schema(str), rest=True),
 )
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)

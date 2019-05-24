@@ -12,16 +12,20 @@ class Arg:
     def __init__(
         self, key: Optional[str] = None, schema=None,
         default: Optional[Any] = None, rest: bool = False,
-        optional: bool = False
+        optional: bool = False, example: Optional[str] = None
     ):
         self.key = key
         self.schema = schema
         self.default = default
         self.rest = rest
         self.optional = optional
+        self.example = example
 
     def __str__(self):
-        return f"{self.key}{f'={self.default}' if self.default is not None else ''}{'...' if self.rest else ''}"
+        return f"{self.key}" \
+            f"{f'={self.default}' if self.default is not None else ''}" \
+            f"{f'({self.example})' if self.example is not None else ''}" \
+            f"{'...' if self.rest else ''}"
 
     # @property
     # def optional(self) -> bool:
@@ -110,17 +114,16 @@ def public_only(f: Callable) -> Callable:
 
 
 def errors(f: Callable) -> Callable:
-    async def wrapper(username: str, channel: str, message: str, *args, command_name_words: int, **kwargs) -> Any:
+    async def wrapper(username: str, channel: str, message: str, *args, command_name: str, **kwargs) -> Any:
         try:
-            return await f(username, channel, message, *args, command_name_words=command_name_words, **kwargs)
+            return await f(username, channel, message, *args, **kwargs)
         except RippleApiError as e:
             return f"API Error: {e}"
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
-            command_name = ' '.join(message.split(" ")[:command_name_words])
             if e.extra is not None:
                 return e.extra
-            return f"Syntax: {command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
+            return f"Syntax: !{command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
     return wrapper
 
 

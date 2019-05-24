@@ -98,11 +98,11 @@ async def on_privmsg(target: str, message: str, host: str, **kwargs) -> None:
     for k, v in (bot.command_handlers if is_command else bot.action_handlers).items():
         if raw_message.startswith(k):
             bot.logger.debug(f"Triggered {v} ({k}) [{'command' if is_command else 'action'}]")
-            command_name_words = len(k.split(" "))
+            command_name_length = len(k.split(" "))
             result = await v(
                 username=host, channel=target, message=message,
-                parts=message.split(" ")[command_name_words:],
-                command_name_words=command_name_words
+                parts=message.split(" ")[command_name_length:],
+                command_name=k
             )
             if result is not None:
                 if type(result) not in (tuple, list):
