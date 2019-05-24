@@ -8,7 +8,6 @@ bot = Bot()
 
 
 @bot.command("alert")
-@plugins.base
 @plugins.arguments(plugins.Arg("message", Schema(str), rest=True))
 @plugins.protected(Privileges.ADMIN_SEND_ALERTS)
 async def alert(username: str, channel: str, message: str) -> None:
@@ -16,7 +15,6 @@ async def alert(username: str, channel: str, message: str) -> None:
 
 
 @bot.command("alertuser")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("target_username", Schema(str)),
     plugins.Arg("message", Schema(str), rest=True)

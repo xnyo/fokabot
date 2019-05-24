@@ -78,7 +78,6 @@ def np_info_response(f: Callable) -> Callable:
 
 
 @bot.command("last")
-@plugins.base
 async def last(username: str, channel: str, *args, **kwargs) -> str:
     """
     !last
@@ -110,7 +109,6 @@ async def last(username: str, channel: str, *args, **kwargs) -> str:
     ("is playing", "is listening to", "is watching"),
     action=True
 )
-@plugins.base
 @plugins.private_only
 @np_info_response
 async def np(username: str, channel: str, message: str, *args, **kwargs) -> Union[NpInfo, str, None]:
@@ -142,7 +140,6 @@ async def np(username: str, channel: str, message: str, *args, **kwargs) -> Unio
 
 
 @bot.command("with")
-@plugins.base
 @plugins.private_only
 @plugins.arguments(plugins.Arg("mods", And(str, Use(Mod.short_factory))))
 @resolve_np_info
@@ -164,7 +161,6 @@ async def with_(username: str, channel: str, mods: Mod, *, np_info: NpInfo, **kw
 
 
 @bot.command("acc")
-@plugins.base
 @plugins.private_only
 @plugins.arguments(plugins.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)))
 @resolve_np_info

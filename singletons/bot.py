@@ -189,7 +189,8 @@ class Bot:
         """
         if func is None:
             return functools.partial(self.command, command_name, action)  # type: ignore
-        wrapped = func
+        import plugins
+        wrapped = plugins.base(func)
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
         if type(command_name) not in (list, tuple):

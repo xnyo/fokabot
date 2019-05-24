@@ -9,7 +9,6 @@ bot = Bot()
 
 
 @bot.command("roll")
-@plugins.base
 @plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
 async def roll(username: str, channel: str, number: int, *args, **kwargs) -> str:
     """
@@ -24,7 +23,6 @@ async def roll(username: str, channel: str, number: int, *args, **kwargs) -> str
 
 
 @bot.command("help")
-@plugins.base
 async def help_(username: str, channel: str, message: str, *args, **kwargs) -> str:
     """
     !help

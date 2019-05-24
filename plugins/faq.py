@@ -12,7 +12,6 @@ bot = Bot()
 
 
 @bot.command("faq")
-@plugins.base
 @plugins.arguments(plugins.Arg("topic", Schema(str)))
 async def faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
     """
@@ -32,7 +31,6 @@ async def faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
 
 
 @bot.command("modfaq")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("topic", Schema(str)),
     plugins.Arg("new_response", Schema(str), rest=True),
@@ -55,7 +53,6 @@ async def mod_faq(username: str, channel: str, topic: str, new_response: str, *a
 
 
 @bot.command("lsfaq")
-@plugins.base
 async def ls_faq(username: str, channel: str, *args, **kwargs) -> str:
     """
     !lsfaq
@@ -69,7 +66,6 @@ async def ls_faq(username: str, channel: str, *args, **kwargs) -> str:
 
 
 @bot.command("delfaq")
-@plugins.base
 @plugins.arguments(plugins.Arg("topic", Schema(str)))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
 async def del_faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:

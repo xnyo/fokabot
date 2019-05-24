@@ -12,7 +12,6 @@ bot = Bot()
 
 
 @bot.command("system info")
-@plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
 async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
     """
@@ -33,7 +32,6 @@ async def info(username: str, channel: str, message: str, **kwargs) -> Tuple:
 
 
 @bot.command("system shutdown")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
 )
@@ -58,7 +56,6 @@ async def shutdown(username: str, channel: str, cancel: bool, **kwargs) -> str:
 
 
 @bot.command("system privcache info")
-@plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
 async def privcache_info(username: str, channel: str, *args, **kwargs) -> str:
     """
@@ -70,7 +67,6 @@ async def privcache_info(username: str, channel: str, *args, **kwargs) -> str:
 
 
 @bot.command("system privcache remove")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("target_username", And(str, Use(general.safefify_username))),
 )
@@ -89,7 +85,6 @@ async def privcache_remove(username: str, channel: str, target_username: str, **
 
 
 @bot.command("system privcache purge")
-@plugins.base
 @plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
 async def privcache_purge(username: str, channel: str, *args, **kwargs) -> str:
     """

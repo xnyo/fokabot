@@ -13,7 +13,6 @@ bot = Bot()
 
 
 @bot.command("moderated")
-@plugins.base
 @plugins.public_only
 @plugins.arguments(plugins.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True, optional=True))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
@@ -23,7 +22,6 @@ async def moderated(username: str, channel: str, on: int) -> str:
 
 
 @bot.command("kick")
-@plugins.base
 @plugins.arguments(plugins.Arg("target_username", And(str)))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
 @plugins.resolve_target_username_to_client()
@@ -36,7 +34,6 @@ async def kick(username: str, channel: str, api_identifier: str, target_username
 
 
 @bot.command("rtx")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("target_username", And(str)),
     plugins.Arg("message", And(str), rest=True)
@@ -53,7 +50,6 @@ async def kick(username: str, channel: str, api_identifier: str, message: str) -
 
 def set_allowed(new_api_allowed: int) -> Callable:
     def wrapper(f: Callable):
-        @plugins.base
         @plugins.arguments(
             plugins.Arg("target_username", And(str))
         )
@@ -87,7 +83,6 @@ async def restrict(username: str, channel: str, target_username: str, target_use
 
 
 @bot.command("silence")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("target_username", Schema(str)),
     plugins.Arg("how_many", Schema(Use(int))),
@@ -111,7 +106,6 @@ async def silence(
 
 
 @bot.command("removesilence")
-@plugins.base
 @plugins.arguments(
     plugins.Arg("target_username", Schema(str))
 )
