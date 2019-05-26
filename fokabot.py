@@ -44,7 +44,12 @@ Bot(
         Config()["LETS_API_BASE"]
     ),
     http_host=Config()["HTTP_HOST"],
-    http_port=Config()["HTTP_PORT"]
+    http_port=Config()["HTTP_PORT"],
+    redis_host=Config()["REDIS_HOST"],
+    redis_port=Config()["REDIS_PORT"],
+    redis_database=Config()["REDIS_DATABASE"],
+    redis_password=Config()["REDIS_PASSWORD"],
+    redis_pool_size=Config()["REDIS_POOL_SIZE"]
 )
 # Register all events
 import events

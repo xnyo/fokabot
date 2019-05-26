@@ -7,9 +7,11 @@ import logging
 from typing import Callable, Optional, Dict, Union, List, Tuple
 
 from aiohttp import web
-
+import aioredis
 from bottom import Client
 
+from pubsub import reader
+from pubsub.manager import PubSubBindingManager
 from utils import singleton
 from utils.letsapi import LetsApiClient
 from utils.np_storage import NpStorage
@@ -29,7 +31,10 @@ class Bot:
         bancho_api_client: BanchoApiClient = None,
         ripple_api_client: RippleApiClient = None,
         lets_api_client: LetsApiClient = None,
-        http_host: str = None, http_port: int = None
+        http_host: str = None, http_port: int = None,
+        redis_host: str = "127.0.0.1", redis_port: int = 6379,
+        redis_database: int = 0, redis_password: Optional[str] = None,
+        redis_pool_size: int = 8,
     ):
         """
         Initializes Fokabot
@@ -67,6 +72,14 @@ class Bot:
         self.reconnecting = False
         self.disposing = False
 
+        self.redis_host = redis_host
+        self.redis_port = redis_port
+        self.redis_database = redis_database
+        self.redis_password = redis_password
+        self.redis_pool_size = redis_pool_size
+        self._pubsub_task: Optional[asyncio.Task] = None
+        self.pubsub_binding_manager: PubSubBindingManager = PubSubBindingManager()
+
         self.login_channels_queue = Queue()
         self.login_channels_left = set()
 
@@ -93,6 +106,8 @@ class Bot:
         self.loop.run_until_complete(api_runner.setup())
         site = web.TCPSite(api_runner, self.http_host, self.http_port)
         asyncio.ensure_future(site.start())
+
+        asyncio.get_event_loop().run_until_complete(self._initialize_redis())
         self.periodic_tasks.extend(
             (
                 self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
@@ -116,10 +131,20 @@ class Bot:
 
         :return:
         """
+        self.logger.info("Disposing Fokabot")
         self.disposing = True
+
+        self.logger.info("Disposing periodic tasks")
         for task in self.periodic_tasks:
             task.cancel()
-        self.logger.info("Disposing Fokabot")
+
+        self.logger.info("Disposing redis")
+        self.redis.close()
+        await self.redis.wait_closed()
+        if self._pubsub_task is not None:
+            self._pubsub_task.cancel()
+
+        self.logger.info("Quitting IRC")
         self.client.send("QUIT")
         await self.client.disconnect()
 
@@ -235,3 +260,30 @@ class Bot:
         while not self.login_channels_queue.empty():
             self.login_channels_queue.get_nowait()
         self.login_channels_left.clear()
+
+    async def _initialize_pubsub(self) -> None:
+        import pubsub.handlers.join_channel
+
+        channels = await self.redis.psubscribe("fokabot:*")
+        if len(channels) != 1:
+            self.logger.error("Invalid Redis pubsub channels!")
+            return
+        self.logger.info("Subscribed to redis pubsub channels")
+
+        # Start the reader (hangs)
+        await reader(channels[0])
+
+    async def _initialize_redis(self) -> None:
+        """
+        Connects to redis
+
+        :return:
+        """
+        self.redis = await aioredis.create_redis_pool(
+            address=(self.redis_host, self.redis_port),
+            db=self.redis_database,
+            password=self.redis_password,
+            maxsize=self.redis_pool_size
+        )
+        self._pubsub_task = asyncio.ensure_future(self._initialize_pubsub())
+        self.logger.info("Connected to Redis")

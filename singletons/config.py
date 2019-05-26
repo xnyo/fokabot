@@ -34,6 +34,12 @@ class Config:
             "HTTP_HOST": config("HTTP_HOST", default="127.0.0.1"),
             "HTTP_PORT": config("HTTP_PORT", default=4334),
             "INTERNAL_API_SECRET": config("INTERNAL_API_SECRET"),
+
+            "REDIS_HOST": config("REDIS_HOST", default="127.0.0.1"),
+            "REDIS_PORT": config("REDIS_PORT", default="6379", cast=int),
+            "REDIS_DATABASE": config("REDIS_DATABASE", default="0", cast=int),
+            "REDIS_PASSWORD": config("REDIS_PASSWORD", default=None),
+            "REDIS_POOL_SIZE": config("REDIS_POOL_SIZE", default="8", cast=int),
         }
 
     def __getitem__(self, item: str) -> Any:
