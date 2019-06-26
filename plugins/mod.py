@@ -40,7 +40,7 @@ async def kick(username: str, channel: str, api_identifier: str, target_username
 )
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
 @plugins.resolve_target_username_to_client()
-async def kick(username: str, channel: str, api_identifier: str, message: str) -> str:
+async def rtx(username: str, channel: str, api_identifier: str, target_username: str, message: str) -> str:
     try:
         await bot.bancho_api_client.rtx(api_identifier, message)
         return ":ok_hand:"
