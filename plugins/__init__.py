@@ -8,6 +8,13 @@ from singletons.bot import Bot
 from utils.rippleapi import RippleApiError
 
 
+class Ctx:
+    def __init__(self, username: str, channel: str, privileges: Privileges):
+        self.username = username
+        self.channel = channel
+        self.privileges = privileges
+
+
 class Arg:
     def __init__(
         self, key: Optional[str] = None, schema=None,
@@ -71,13 +78,30 @@ def arguments(*args: Tuple[Arg]) -> Callable:
     return decorator
 
 
+def resolve_user_to_client(game: bool = True) -> Callable:
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
+            user_id = await Bot().ripple_api_client.what_id(username)
+            if user_id is None:
+                return "Do you even exist?"
+            client = await Bot().bancho_api_client.get_client(user_id, game_only=game)
+            if client is None:
+                return "I can't find a client that belongs to you"
+            api_identifier = client["api_identifier"]
+            return await f(
+                username, channel, *args, api_identifier=api_identifier, **kwargs
+            )
+        return wrapper
+    return decorator
+
+
 def resolve_target_username_to_client(game: bool = True) -> Callable:
     def decorator(f: Callable) -> Callable:
         async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
             user_id = await Bot().ripple_api_client.what_id(target_username)
             if user_id is None:
                 return "No such user."
-            client = await Bot().bancho_api_client.get_client(user_id, game_only=True)
+            client = await Bot().bancho_api_client.get_client(user_id, game_only=game)
             if client is None:
                 return "This user is not connected right now"
             api_identifier = client["api_identifier"]
@@ -118,7 +142,10 @@ def errors(f: Callable) -> Callable:
         try:
             return await f(username, channel, message, *args, **kwargs)
         except RippleApiError as e:
-            return f"API Error: {e}"
+            msg = e.data.get("message", None)
+            if msg is None:
+                return f"API Error: {e}"
+            return msg
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
             if e.extra is not None:

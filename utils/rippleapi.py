@@ -11,6 +11,20 @@ from enum import IntEnum, auto
 from constants.game_modes import GameMode
 
 
+class BanchoApiBeatmap:
+    def __init__(self, id_: Optional[int] = None, md5: Optional[str] = None, song_name: Optional[str] = None):
+        self.id_ = id_
+        self.md5 = md5
+        self.song_name = song_name
+
+    def __dict__(self) -> Dict[str, Any]:
+        return {
+            "id": self.id_,
+            "md5": self.md5,
+            "song_name": self.song_name
+        }
+
+
 class RippleApiError(Exception):
     pass
 
@@ -197,6 +211,14 @@ class RippleApiBaseClient(ABC):
     def datetime_to_rfc3339(d: datetime) -> str:
         return d.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
+    @staticmethod
+    def remove_none(d):
+        d = {k: v for k, v in d.items() if v is not None}
+        for k, v in d.items():
+            if type(v) is dict:
+                d[k] = RippleApiBaseClient.remove_none(v)
+        return d
+
 
 class BanchoClientType(IntEnum):
     """
@@ -324,6 +346,31 @@ class BanchoApiClient(RippleApiBaseClient):
         """
         await self._request("system/graceful_shutdown", "DELETE")
         return True
+
+    async def create_match(
+        self, name: str, password: Optional[str] = None, slots: int = None,
+        game_mode: GameMode = None, seed: int = None, beatmap: BanchoApiBeatmap = None
+    ) -> int:
+        if beatmap is not None:
+            beatmap = beatmap.__dict__()
+        d = self.remove_none({
+            "name": name,
+            "password": password,
+            "slots": slots,
+            "game_mode": game_mode,
+            "seed": seed,
+            "beatmap": beatmap
+        })
+        if d.get("game_mode", None) is not None:
+            d["game_mode"] = int(d["game_mode"])
+        response = await self._request("multiplayer", "POST", d)
+        return response.get("match_id")
+
+    async def join_match(self, api_identifier: str, match_id: int, password: Optional[str]) -> bool:
+        await self._request(f"clients/{api_identifier}/join_match", "POST", self.remove_none({
+            "match_id": match_id,
+            "password": password
+        }))
 
 
 class RippleApiClient(RippleApiBaseClient):

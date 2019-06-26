@@ -68,6 +68,12 @@ async def on_topic(channel: str, message: str):
         bot.login_channels_queue.put_nowait(channel.lower())
 
 
+# @bot.client.on("PART")
+# async def on_part(host: str, channel: str, message: str):
+#     if channel in bot.joined_channels:
+#         bot.joined_channels.remove(channel)
+#         bot.logger.info(f"Parted {channel}")
+
 # TODO: remove from bot.joined_channel when a channel gets disposed
 
 
