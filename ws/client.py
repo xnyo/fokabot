@@ -118,8 +118,8 @@ class WsClient:
         if "disconnected" in r:
             raise RuntimeError("Cannot connect.")
 
-    async def stop(self):
-        self.reader_task.stop()
+    def stop(self):
+        self.reader_task.cancel()
 
     def trigger(self, k_: str, **kwargs) -> None:
         k_ = k_.lower()

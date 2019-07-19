@@ -137,7 +137,13 @@ class Bot:
         if self._pubsub_task is not None:
             self._pubsub_task.cancel()
 
-        # TODO WS: Close ws connetion
+        # Close ws connetion
+        try:
+            self.logger.info("Closing ws connection")
+            self.client.stop()
+            await self.client.wait("disconnected")
+        except Exception as e:
+            self.logger.error(f"Error while closing ws connection ({e})")
 
     def command(
         self, command_name: Union[str, List[str], Tuple[str]], action: bool = False, func: Optional[Callable] = None
