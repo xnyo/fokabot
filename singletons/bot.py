@@ -189,8 +189,9 @@ class Bot:
         self.login_channels_left.clear()
 
     async def _initialize_pubsub(self) -> None:
-        import pubsub.handlers.join_channel
+        import pubsub.handlers.message
 
+        self.logger.debug("Subscribing to redis pubsub")
         channels = await self.redis.psubscribe("fokabot:*")
         if len(channels) != 1:
             self.logger.error("Invalid Redis pubsub channels!")
