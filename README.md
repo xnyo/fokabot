@@ -17,6 +17,7 @@ Python with asyncio.
 - [x] !system
 - [x] /np support
 - [x] !last
+- [x] !bloodcat
 - [ ] !mp
 - [ ] !switchserver (?)
 
