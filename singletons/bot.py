@@ -139,9 +139,10 @@ class Bot:
 
         # Close ws connetion
         try:
-            self.logger.info("Closing ws connection")
-            self.client.stop()
-            await self.client.wait("disconnected")
+            if self.client.running:
+                self.logger.info("Closing ws connection")
+                self.client.stop()
+                await self.client.wait("disconnected")
         except Exception as e:
             self.logger.error(f"Error while closing ws connection ({e})")
 
@@ -216,6 +217,6 @@ class Bot:
         self.logger.debug("Starting ws client")
         try:
             await self.client.start()
-        except RuntimeError as e:
+        except ConnectionError as e:
             self.logger.error(f"{e}. Now disposing.")
             self.loop.stop()

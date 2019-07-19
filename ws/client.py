@@ -116,7 +116,7 @@ class WsClient:
         self.reader_task = asyncio.ensure_future(self.reader())
         r = await self.wait("connected", "disconnected")
         if "disconnected" in r:
-            raise RuntimeError("Cannot connect.")
+            raise ConnectionError("Cannot connect.")
 
     def stop(self):
         self.reader_task.cancel()

@@ -1,5 +1,7 @@
 from typing import Dict, Any
 
+import asyncio
+
 from constants.events import WsEvent
 from singletons.bot import Bot
 from ws.client import LoginFailedError
@@ -38,6 +40,7 @@ async def chat_channel_joined(name: str, **kwargs):
         bot.login_channels_left.remove(name.lower())
         if not bot.login_channels_left:
             bot.ready = True
+            bot.client.trigger("ready")
             bot.logger.info("Bot ready!")
 
 
@@ -88,3 +91,47 @@ async def on_message(sender: Dict[str, Any], recipient: str, message: str, **kwa
                     result = (result,)
                 for x in result:
                     bot.client.send(WsChatMessage(x, recipient))
+
+
+@bot.client.on("disconnected")
+async def on_disconnect(*args, **kwargs):
+    """
+    Called when the client is disconnected.
+    Tries to reconnect to the server.
+
+    :param kwargs:
+    :return:
+    """
+    if bot.disposing:
+        return
+    if bot.reconnecting:
+        bot.logger.warning("Got 'disconnect', but the bot is already reconnecting.")
+        return
+
+    async def reconnect():
+        """
+        Performs the actual reconnection, wait for the 'ready' event and notifies '#admin'
+
+        :return:
+        """
+        await bot.client.start()
+        await bot.client.wait("ready")
+        bot.client.send(WsChatMessage("Reconnected.", "#admin"))
+
+    bot.reset()
+    bot.reconnecting = True
+    seconds = 5     # todo: backoff?
+    bot.logger.info(f"Disconnected! Starting reconnect loop in {seconds} seconds")
+    await asyncio.sleep(seconds)
+    while True:
+        try:
+            bot.logger.info(f"Trying to reconnect. Max timeout is {seconds} seconds.")
+            await asyncio.wait_for(reconnect(), timeout=seconds)
+            break
+        except ConnectionError:
+            bot.logger.warning(f"Connection failed! Retrying in {seconds} seconds")
+            await asyncio.sleep(seconds)
+        except asyncio.TimeoutError:
+            bot.logger.warning("Server timeout")
+    bot.reconnecting = False
+    bot.logger.info("Reconnected!")
