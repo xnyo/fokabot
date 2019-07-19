@@ -26,6 +26,8 @@ class Config:
             "BANCHO_API_BASE": config("BANCHO_API_BASE", default="https://c.ripple.moe"),
             "BANCHO_API_TOKEN": config("BANCHO_API_TOKEN", default=token),
 
+            "CHEESEGULL_API_BASE": config("CHEESEGULL_API_BASE", default="https://storage.ripple.moe"),
+
             "LETS_API_BASE": config("LETS_API_BASE", default="https://ripple.moe/letsapi"),
 
             "HTTP_HOST": config("HTTP_HOST", default="127.0.0.1"),

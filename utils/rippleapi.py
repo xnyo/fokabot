@@ -177,7 +177,10 @@ class RippleApiBaseClient(ABC):
 
                 # Different authorization header based on our authentication method
                 # (oauth or normal token)
-                headers = {"X-Ripple-Token": self.token}
+                if self.token is not None:
+                    headers = {"X-Ripple-Token": self.token}
+                else:
+                    headers = {}
 
                 # Send the API request
                 try:
@@ -197,7 +200,7 @@ class RippleApiBaseClient(ABC):
                     raise RippleApiFatalError(e)
 
                 # Make sure the response was valid
-                if result.get("code", None) != 200:
+                if response.status != 200:
                     raise RippleApiResponseError.factory(result)
 
                 return result
@@ -378,6 +381,9 @@ class BanchoApiClient(RippleApiBaseClient):
         })
         return response.get("channels")
 
+    async def get_match_info(self, match_id: int) -> Dict[str, Any]:
+        return await self._request(f"multiplayer/{match_id}")
+
 
 class RippleApiClient(RippleApiBaseClient):
     logger = logging.getLogger("ripple_api")
@@ -475,3 +481,15 @@ class RippleApiClient(RippleApiBaseClient):
         game_mode: Optional[GameMode] = None
     ) -> List[Dict[str, Any]]:
         return await self._scores("best", user_id, username, game_mode)
+
+
+class CheesegullApiClient(RippleApiBaseClient):
+    def __init__(self, base: str = "https://storage.ripple.moe", user_agent: str = "fokabot", timeout: int = 5):
+        super(CheesegullApiClient, self).__init__(token=None, base=base, user_agent=user_agent, timeout=timeout)
+
+    @property
+    def api_link(self) -> str:
+        return f"{self.base.rstrip('/')}/"
+
+    async def get_beatmap(self, beatmap_id):
+        return await self._request(f"b/{beatmap_id}")

@@ -22,7 +22,7 @@ from utils.letsapi import LetsApiClient
 from utils.np_storage import NpStorage
 from utils.periodic_tasks import periodic_task
 from utils.privileges_cache import PrivilegesCache
-from utils.rippleapi import BanchoApiClient, RippleApiClient
+from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
 
 
 @singleton.singleton
@@ -34,6 +34,7 @@ class Bot:
         commands_prefix: str = "!",
         bancho_api_client: BanchoApiClient = None,
         ripple_api_client: RippleApiClient = None,
+        cheesegull_api_client: CheesegullApiClient = None,
         lets_api_client: LetsApiClient = None,
         http_host: str = None, http_port: int = None,
         redis_host: str = "127.0.0.1", redis_port: int = 6379,
@@ -46,6 +47,7 @@ class Bot:
         self.http_port = http_port
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
+        self.cheesegull_api_client = cheesegull_api_client
         self.lets_api_client = lets_api_client
         self.web_app: web.Application = web.Application()
         self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)

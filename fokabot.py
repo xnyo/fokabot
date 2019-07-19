@@ -9,7 +9,7 @@ from singletons.bot import Bot
 
 # Logging
 from utils.letsapi import LetsApiClient
-from utils.rippleapi import BanchoApiClient, RippleApiClient
+from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
 
 logging.basicConfig(level=logging.DEBUG if Config()["DEBUG"] else logging.INFO)
 logging.info(
@@ -39,6 +39,9 @@ Bot(
     ),
     lets_api_client=LetsApiClient(
         Config()["LETS_API_BASE"]
+    ),
+    cheesegull_api_client=CheesegullApiClient(
+        Config()["CHEESEGULL_API_BASE"]
     ),
     http_host=Config()["HTTP_HOST"],
     http_port=Config()["HTTP_PORT"],
