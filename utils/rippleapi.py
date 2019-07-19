@@ -366,11 +366,17 @@ class BanchoApiClient(RippleApiBaseClient):
         response = await self._request("multiplayer", "POST", d)
         return response.get("match_id")
 
-    async def join_match(self, api_identifier: str, match_id: int, password: Optional[str]) -> bool:
+    async def join_match(self, api_identifier: str, match_id: int, password: Optional[str]) -> None:
         await self._request(f"clients/{api_identifier}/join_match", "POST", self.remove_none({
             "match_id": match_id,
             "password": password
         }))
+
+    async def get_all_channels(self) -> List[Dict[str, Any]]:
+        response = await self._request("chat_channels", "GET", {
+            "filter": "all"
+        })
+        return response.get("channels")
 
 
 class RippleApiClient(RippleApiBaseClient):

@@ -26,11 +26,8 @@ logging.info(
 # Setup Bot singleton
 uvloop.install()
 Bot(
-    host=Config()["IRC_HOST"],
-    port=Config()["IRC_PORT"],
-    ssl=Config()["IRC_SSL"],
+    wss=Config()["WSS"],
     nickname=Config()["BOT_NICKNAME"],
-    password=Config()["BOT_PASSWORD"],
     commands_prefix=Config()["COMMANDS_PREFIX"],
     bancho_api_client=BanchoApiClient(
         Config()["BANCHO_API_TOKEN"],

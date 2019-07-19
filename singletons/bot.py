@@ -1,6 +1,12 @@
 import asyncio
 import signal
-from asyncio import Queue
+
+from ws.client import WsClient
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 import functools
 import logging
@@ -8,7 +14,6 @@ from typing import Callable, Optional, Dict, Union, List, Tuple
 
 from aiohttp import web
 import aioredis
-from bottom import Client
 
 from pubsub import reader
 from pubsub.manager import PubSubBindingManager
@@ -25,8 +30,7 @@ class Bot:
     VERSION: str = "2.0.0"
 
     def __init__(
-        self, *, host: str = "irc.ripple.moe", port: int = 6667,
-        ssl: bool = True, nickname: str = "FokaBot", password: str = "",
+        self, *, nickname: str = "FokaBot", wss: bool = True,
         commands_prefix: str = "!",
         bancho_api_client: BanchoApiClient = None,
         ripple_api_client: RippleApiClient = None,
@@ -36,19 +40,10 @@ class Bot:
         redis_database: int = 0, redis_password: Optional[str] = None,
         redis_pool_size: int = 8,
     ):
-        """
-        Initializes Fokabot
-
-        :param host: IRC server host
-        :param port: IRC server port
-        :param ssl: whether the IRC server supports SSL or not
-        :param nickname: bot nickname
-        :param password: bot password ("irc token")
-        :param commands_prefix: commands prefix (eg: !, ;, ...)
-        """
+        self.ready = False
+        self.nickname = nickname
         self.http_host = http_host
         self.http_port = http_port
-        self.client: Client = Client(host, port, ssl=ssl)
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
         self.lets_api_client = lets_api_client
@@ -58,19 +53,22 @@ class Bot:
         self.periodic_tasks: List[asyncio.Task] = []
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
             raise RuntimeError("You must provide a valid BanchoApiClient")
-        self.nickname = nickname
-        self.password = password
         self.logger = logging.getLogger("fokabot")
-        self.logger.info(f"Creating bot ({self.nickname}) {host}:{port} (ssl: {ssl})")
-        if not ssl:
-            self.logger.warning("SSL is disabled")
-        self.joined_channels = set()
+        self.wss = wss
+        if not wss:
+            self.logger.warning("WSS is disabled")
         self.command_handlers: Dict[str, Callable] = {}
         self.action_handlers: Dict[str, Callable] = {}
         self.command_prefix = commands_prefix
-        self._ready = self.ready = False
         self.reconnecting = False
         self.disposing = False
+        endpoint_base = self.bancho_api_client.base.rstrip('/')
+        for x in ("http://", "https://"):
+            if endpoint_base.startswith(x):
+                endpoint_base = endpoint_base[len(x):]
+        self.client = WsClient(
+            f"{'wss' if self.wss else 'ws'}://{endpoint_base}/api/v2/ws"
+        )
 
         self.redis_host = redis_host
         self.redis_port = redis_port
@@ -80,21 +78,16 @@ class Bot:
         self._pubsub_task: Optional[asyncio.Task] = None
         self.pubsub_binding_manager: PubSubBindingManager = PubSubBindingManager()
 
-        self.login_channels_queue = Queue()
         self.login_channels_left = set()
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
-        """
-        Returns the IRC client IOLoop
-
-        :return: the IOLoop
-        """
-        return self.client.loop
+        return asyncio.get_event_loop()
 
     def run(self) -> None:
         """
-        Connects the IRC client and runs its loop forever
+        Connects the ws and runs its loop forever.
+        Starts the internal api and the periodic tasks as well.
 
         :return:
         """
@@ -115,7 +108,7 @@ class Bot:
             )
         )
 
-        self.loop.create_task(self.client.connect())
+        asyncio.get_event_loop().run_until_complete(self._initialize_ws())
         signal.signal(signal.SIGINT, lambda s, f: self.loop.stop())
         try:
             self.loop.run_forever()
@@ -144,56 +137,7 @@ class Bot:
         if self._pubsub_task is not None:
             self._pubsub_task.cancel()
 
-        self.logger.info("Quitting IRC")
-        self.client.send("QUIT")
-        await self.client.disconnect()
-
-    def _waiter(self) -> Callable:
-        """
-        Helper for self.wait_for
-
-        :return:
-        """
-        async def wait_for(*events, return_when=asyncio.FIRST_COMPLETED):
-            self.logger.debug(f"Waiting for {events}")
-            if not events:
-                return
-            done, pending = await asyncio.wait(
-                [self.client.wait(event) for event in events],
-                loop=self.loop,
-                return_when=return_when
-            )
-            self.logger.debug(f"Got something (done:{done}, pending:{pending})")
-
-            # Get the result(s) of the completed task(s).
-            ret = [future.result() for future in done]
-
-            # Cancel any events that didn't come in.
-            for future in pending:
-                future.cancel()
-
-            # Return list of completed event names.
-            return ret
-        return wait_for
-
-    @property
-    def wait_for(self) -> Callable:
-        """
-        Waits for a (or some) specific IRC response(s)
-        ```
-        >>> # awaits RPL_ENDOFMOTD
-        >>> await bot.wait_for("RPL_ENDOFMOTD")
-        >>>
-        >>> # awaits RPL_ENDOFMOTD and gets the response
-        >>> end_of_motd = await bot.wait_for("RPL_ENDOFMOTD")
-        >>>
-        >>> # awaits for either RPL_ENDOFMOTD or ERR_NOMOTD and gets only response for ERR_NOMOTD
-        >>> _, no_motd = await bot.wait_for("RPL_ENDOFMOTD", "ERR_NOMOTD")
-        ```
-
-        :return:
-        """
-        return self._waiter()
+        # TODO WS: Close ws connetion
 
     def command(
         self, command_name: Union[str, List[str], Tuple[str]], action: bool = False, func: Optional[Callable] = None
@@ -225,29 +169,6 @@ class Bot:
         # Always return original
         return functools.partial(func, command_name=command_name)
 
-    @property
-    def ready(self) -> bool:
-        """
-        Whether the bot is ready to process requests
-        (it has logged in and it has joined all channels)
-
-        :return: whether the bot is ready or not
-        """
-        return self._ready
-
-    @ready.setter
-    def ready(self, value: bool) -> None:
-        """
-        Sets the "ready" flag.
-        If setting to True, it'll trigger the 'ready' event on the IRC bot as well.
-
-        :param value: new "ready" flag value
-        :return:
-        """
-        self._ready = value
-        if self.ready:
-            self.client.trigger("ready")
-
     def reset(self) -> None:
         """
         Resets the bot. Must be called when reconnecting.
@@ -256,9 +177,6 @@ class Bot:
         :return:
         """
         self.ready = False
-        self.joined_channels.clear()
-        while not self.login_channels_queue.empty():
-            self.login_channels_queue.get_nowait()
         self.login_channels_left.clear()
 
     async def _initialize_pubsub(self) -> None:
@@ -287,3 +205,11 @@ class Bot:
         )
         self._pubsub_task = asyncio.ensure_future(self._initialize_pubsub())
         self.logger.info("Connected to Redis")
+
+    async def _initialize_ws(self) -> None:
+        self.logger.debug("Starting ws client")
+        try:
+            await self.client.start()
+        except RuntimeError as e:
+            self.logger.error(f"{e}. Now disposing.")
+            self.loop.stop()
