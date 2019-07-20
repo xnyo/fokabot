@@ -15,7 +15,7 @@ async def connected():
     try:
         bot.client.send(WsAuth(bot.nickname, bot.bancho_api_client.token))
         results = await bot.client.wait("msg:auth_success", "msg:auth_failure")
-        if "auth_failure" in results:
+        if "msg:auth_failure" in results:
             bot.logger.info("Login failed")
             raise LoginFailedError()
         bot.logger.info("Logged in successfully")
