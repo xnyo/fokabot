@@ -376,10 +376,7 @@ class BanchoApiClient(RippleApiBaseClient):
         }))
 
     async def get_all_channels(self) -> List[Dict[str, Any]]:
-        response = await self._request("chat_channels", "GET", {
-            "filter": "all"
-        })
-        return response.get("channels")
+        return (await self._request("chat_channels")).get("channels")
 
     async def get_match_info(self, match_id: int) -> Dict[str, Any]:
         return await self._request(f"multiplayer/{match_id}")
