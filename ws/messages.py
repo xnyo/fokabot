@@ -32,7 +32,7 @@ class WsMessage:
     
 class WsAuth(WsMessage):
     def __init__(self, username: str, token: str):
-        super(WsAuth, self).__init__("auth", {"username": username, "token": token})
+        super(WsAuth, self).__init__("auth", {"token": token})
 
 
 class WsSubscribe(WsMessage):
