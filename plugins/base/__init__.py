@@ -78,18 +78,10 @@ def arguments(*args: Arg, intersect_kwargs: bool = True) -> Callable:
 
             final_kwargs = {**validated_args, **kwargs}
             if intersect_kwargs:
-                final_kwargs = utils.required_kwargs_only(f, {**validated_args, **kwargs})
+                final_kwargs = utils.required_kwargs_only(f, **validated_args, **kwargs)
             return await f(**final_kwargs)
         return wrapper
     return decorator
-
-
-def private_only(f: Callable) -> Callable:
-    return trigger_filter_and(filters.is_private)(f)
-
-
-def public_only(f: Callable) -> Callable:
-    return trigger_filter_and(filters.is_public)(f)
 
 
 def errors(f: Callable) -> Callable:
@@ -132,7 +124,7 @@ def protected(required_privileges: Privileges) -> Callable:
 def _trigger_filter(*filters_: Callable[..., bool], checker: Callable[..., bool] = None) -> Callable:
     def decorator(f: Callable) -> Callable:
         async def wrapper(**kwargs) -> Any:
-            if not checker(x(**utils.required_kwargs_only(x, kwargs)) for x in filters_):
+            if not checker(x(**utils.required_kwargs_only(x, **kwargs)) for x in filters_):
                 return
             return await f(**kwargs)
         return wrapper
@@ -145,3 +137,15 @@ def trigger_filter_or(*filters_: Callable[..., bool]) -> Callable:
 
 def trigger_filter_and(*filters_: Callable[..., bool]) -> Callable:
     return _trigger_filter(*filters_, checker=all)
+
+
+def private_only(f: Callable) -> Callable:
+    return trigger_filter_and(filters.is_private)(f)
+
+
+def public_only(f: Callable) -> Callable:
+    return trigger_filter_and(filters.is_public)(f)
+
+
+def multiplayer_only(f: Callable) -> Callable:
+    return trigger_filter_and(filters.is_multi)(f)

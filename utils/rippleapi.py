@@ -1,7 +1,7 @@
 import logging
 import ujson
 from datetime import datetime
-from typing import Optional, Dict, Any, Callable, List
+from typing import Optional, Dict, Any, Callable, List, Union
 
 import aiohttp
 import async_timeout
@@ -375,11 +375,35 @@ class BanchoApiClient(RippleApiBaseClient):
             "password": password
         }))
 
-    async def get_all_channels(self) -> List[Dict[str, Any]]:
-        return (await self._request("chat_channels")).get("channels")
-
     async def get_match_info(self, match_id: int) -> Dict[str, Any]:
         return await self._request(f"multiplayer/{match_id}")
+
+    async def delete_match(self, match_id: int) -> None:
+        await self._request(f"multiplayer/{match_id}", "DELETE")
+
+    async def lock(
+        self, match_id: int, slot: Optional[int] = None, slots: Union[None, int, List[Dict[str, Any]]] = None
+    ) -> None:
+        if slots is None == slot is None:
+            raise ValueError("You must provide either slot or slots, not neither or both.")
+        await self._request(f"multiplayer/{match_id}/lock", "POST", self.remove_none({
+            "slot": slot,
+            "slots": slots
+        }))
+
+    async def match_move_user(self, match_id: int, api_identifier: str, slot_id: int) -> None:
+        await self._request(
+            f"multiplayer/{match_id}/move", "POST", {"api_identifier": api_identifier, "slot_id": slot_id}
+        )
+
+    async def transfer_host(self, match_id: int, api_identifier: Optional[str]) -> None:
+        await self._request(f"multiplayer/{match_id}/transfer_host", "POST", {"api_identifier": api_identifier})
+
+    async def clear_host(self, match_id: int) -> None:
+        await self.transfer_host(match_id, api_identifier=None)
+
+    async def get_all_channels(self) -> List[Dict[str, Any]]:
+        return (await self._request("chat_channels")).get("channels")
 
 
 class RippleApiClient(RippleApiBaseClient):

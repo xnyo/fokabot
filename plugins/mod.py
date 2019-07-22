@@ -57,7 +57,9 @@ def set_allowed(new_api_allowed: int) -> Callable:
         async def decorator(*, username: str, **kwargs) -> str:
             target_user_id = await plugins.base.utils.username_to_user_id(username)
             await bot.ripple_api_client.set_allowed(target_user_id, new_api_allowed)
-            return await f(**plugins.base.utils.required_kwargs_only(f, {"user_id": target_user_id, "username": username, **kwargs}))
+            return await f(**plugins.base.utils.required_kwargs_only(
+                f, user_id=target_user_id, username=username, **kwargs
+            ))
         return decorator
     return wrapper
 
