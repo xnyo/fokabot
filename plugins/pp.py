@@ -3,7 +3,7 @@ from typing import Optional, Callable, Any, Union, Dict
 import re
 from schema import And, Use
 
-import plugins
+import plugins.base
 from singletons.bot import Bot
 from constants.game_modes import GameMode
 from constants.mods import Mod
@@ -78,7 +78,7 @@ def np_info_response(f: Callable) -> Callable:
 
 
 @bot.command("last")
-@plugins.base
+@plugins.base.base
 async def last(sender: Dict[str, Any], pm: bool) -> str:
     """
     !last
@@ -106,7 +106,7 @@ async def last(sender: Dict[str, Any], pm: bool) -> str:
     ("is playing", "is listening to", "is watching"),
     action=True
 )
-@plugins.private_only
+@plugins.base.private_only
 @np_info_response
 async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, None]:
     """
@@ -132,9 +132,9 @@ async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, No
 
 
 @bot.command("with")
-@plugins.private_only
-@plugins.arguments(
-    plugins.Arg("mods", And(str, Use(Mod.short_factory))),
+@plugins.base.private_only
+@plugins.base.arguments(
+    plugins.base.Arg("mods", And(str, Use(Mod.short_factory))),
     intersect_kwargs=False
 )
 @resolve_np_info
@@ -151,9 +151,9 @@ async def with_(mods: Mod, np_info: NpInfo, **_) -> None:
 
 
 @bot.command("acc")
-@plugins.private_only
-@plugins.arguments(
-    plugins.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)),
+@plugins.base.private_only
+@plugins.base.arguments(
+    plugins.base.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)),
     intersect_kwargs=False
 )
 @resolve_np_info

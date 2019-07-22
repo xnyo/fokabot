@@ -3,7 +3,7 @@ from aiotinydb import AIOTinyDB
 from schema import Schema
 from tinydb import where
 
-import plugins
+import plugins.base
 from constants.privileges import Privileges
 from singletons.bot import Bot
 
@@ -12,7 +12,7 @@ bot = Bot()
 
 
 @bot.command("faq")
-@plugins.arguments(plugins.Arg("topic", Schema(str)))
+@plugins.base.arguments(plugins.base.Arg("topic", Schema(str)))
 async def faq(topic: str) -> str:
     """
     !faq <topic>
@@ -29,10 +29,10 @@ async def faq(topic: str) -> str:
 
 
 @bot.command("modfaq")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(
-    plugins.Arg("topic", Schema(str)),
-    plugins.Arg("new_response", Schema(str), rest=True),
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(
+    plugins.base.Arg("topic", Schema(str)),
+    plugins.base.Arg("new_response", Schema(str), rest=True),
 )
 async def mod_faq(topic: str, new_response: str) -> str:
     """
@@ -49,7 +49,7 @@ async def mod_faq(topic: str, new_response: str) -> str:
 
 
 @bot.command("lsfaq")
-@plugins.base
+@plugins.base.base
 async def ls_faq() -> str:
     """
     !lsfaq
@@ -61,8 +61,8 @@ async def ls_faq() -> str:
 
 
 @bot.command("delfaq")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(plugins.Arg("topic", Schema(str)))
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(plugins.base.Arg("topic", Schema(str)))
 async def del_faq(topic: str) -> str:
     """
     !delfaq <topic>

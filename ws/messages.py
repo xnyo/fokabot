@@ -31,7 +31,7 @@ class WsMessage:
         }
     
 class WsAuth(WsMessage):
-    def __init__(self, username: str, token: str):
+    def __init__(self, token: str):
         super(WsAuth, self).__init__("auth", {"token": token})
 
 

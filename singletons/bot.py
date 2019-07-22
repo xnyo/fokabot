@@ -1,6 +1,7 @@
 import asyncio
 import signal
 
+import plugins.base
 from ws.client import WsClient
 
 try:
@@ -167,7 +168,7 @@ class Bot:
         if func is None:
             return functools.partial(self.command, command_name, action)  # type: ignore
         import plugins
-        wrapped = plugins.errors(func)
+        wrapped = plugins.base.errors(func)
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
         if type(command_name) not in (list, tuple):

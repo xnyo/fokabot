@@ -4,6 +4,7 @@ from typing import Callable, Dict, Any
 from schema import And, Use, Schema
 
 import plugins
+import plugins.base
 import plugins.base.utils
 from constants.privileges import Privileges
 from constants.silence_units import SilenceUnit
@@ -14,17 +15,17 @@ bot = Bot()
 
 
 @bot.command("moderated")
-@plugins.public_only
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(plugins.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True, optional=True))
+@plugins.base.public_only
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(plugins.base.Arg("on", And(str, Use(lambda x: x.lower() == "on")), default=True, optional=True))
 async def moderated(recipient: Dict[str, Any], on: int) -> str:
     await bot.bancho_api_client.moderated(recipient["name"], on)
     return f"This channel is {'now' if on else 'no longer'} in moderated mode"
 
 
 @bot.command("kick")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(plugins.Arg("username", And(str)))
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(plugins.base.Arg("username", And(str)))
 async def kick(username: str) -> str:
     api_identifier = await plugins.base.utils.username_to_client(username)
     try:
@@ -35,10 +36,10 @@ async def kick(username: str) -> str:
 
 
 @bot.command("rtx")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(
-    plugins.Arg("username", And(str)),
-    plugins.Arg("the_message", And(str), rest=True)
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(
+    plugins.base.Arg("username", And(str)),
+    plugins.base.Arg("the_message", And(str), rest=True)
 )
 async def rtx(username: str, the_message: str) -> str:
     api_identifier = await plugins.base.utils.username_to_client(username)
@@ -51,8 +52,8 @@ async def rtx(username: str, the_message: str) -> str:
 
 def set_allowed(new_api_allowed: int) -> Callable:
     def wrapper(f: Callable):
-        @plugins.protected(Privileges.ADMIN_BAN_USERS)
-        @plugins.arguments(plugins.Arg("username", And(str)))
+        @plugins.base.protected(Privileges.ADMIN_BAN_USERS)
+        @plugins.base.arguments(plugins.base.Arg("username", And(str)))
         async def decorator(*, username: str, **kwargs) -> str:
             target_user_id = await plugins.base.utils.username_to_user_id(username)
             await bot.ripple_api_client.set_allowed(target_user_id, new_api_allowed)
@@ -80,12 +81,12 @@ async def restrict(username: str, user_id: int) -> str:
 
 
 @bot.command("silence")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(
-    plugins.Arg("username", Schema(str)),
-    plugins.Arg("how_many", Schema(Use(int))),
-    plugins.Arg("unit", And(str, Use(SilenceUnit), error="Unit must be s/m/h/d"), example="s/m/h/d"),
-    plugins.Arg("reason", Schema(str), rest=True),
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(
+    plugins.base.Arg("username", Schema(str)),
+    plugins.base.Arg("how_many", Schema(Use(int))),
+    plugins.base.Arg("unit", And(str, Use(SilenceUnit), error="Unit must be s/m/h/d"), example="s/m/h/d"),
+    plugins.base.Arg("reason", Schema(str), rest=True),
 )
 async def silence(username: str, how_many: int, unit: SilenceUnit, reason: str) -> str:
     user_id = await plugins.base.utils.username_to_user_id(username)
@@ -99,9 +100,9 @@ async def silence(username: str, how_many: int, unit: SilenceUnit, reason: str) 
 
 
 @bot.command("removesilence")
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-@plugins.arguments(
-    plugins.Arg("username", Schema(str))
+@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.arguments(
+    plugins.base.Arg("username", Schema(str))
 )
 async def remove_silence(username: str) -> str:
     user_id = await plugins.base.utils.username_to_user_id(username)

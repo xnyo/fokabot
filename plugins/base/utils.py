@@ -1,24 +1,25 @@
 import inspect
 from typing import Callable, Dict, Any
 
-from plugins import GenericBotError
-from singletons.bot import Bot
+import plugins
+import plugins.base
+import singletons.bot
 
 
 async def username_to_client(username: str, game: bool = False) -> str:
-    user_id = await Bot().ripple_api_client.what_id(username)
+    user_id = await singletons.bot.Bot().ripple_api_client.what_id(username)
     if user_id is None:
-        raise GenericBotError("No such user.")
-    client = await Bot().bancho_api_client.get_client(user_id, game_only=game)
+        raise plugins.base.GenericBotError("No such user.")
+    client = await singletons.bot.Bot().bancho_api_client.get_client(user_id, game_only=game)
     if client is None:
-        raise GenericBotError("This user is not connected right now")
+        raise plugins.base.GenericBotError("This user is not connected right now")
     return client["api_identifier"]
 
 
 async def username_to_user_id(username: str) -> int:
-    user_id = await Bot().ripple_api_client.what_id(username)
+    user_id = await singletons.bot.Bot().ripple_api_client.what_id(username)
     if user_id is None:
-        raise GenericBotError(f"No such user ({username})")
+        raise plugins.base.GenericBotError(f"No such user ({username})")
     return user_id
 
 

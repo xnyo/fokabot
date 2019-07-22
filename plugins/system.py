@@ -3,17 +3,16 @@ import datetime
 
 from schema import And, Use
 
-import plugins
+import plugins.base
 from constants.privileges import Privileges
 from singletons.bot import Bot
-from utils import general
 
 bot = Bot()
 
 
 @bot.command("system info")
-@plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-@plugins.base
+@plugins.base.protected(Privileges.ADMIN_MANAGE_SERVERS)
+@plugins.base.base
 async def info() -> Tuple[str, ...]:
     """
     !system info
@@ -31,9 +30,9 @@ async def info() -> Tuple[str, ...]:
 
 
 @bot.command("system shutdown")
-@plugins.protected(Privileges.ADMIN_MANAGE_SERVERS)
-@plugins.arguments(
-    plugins.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
+@plugins.base.protected(Privileges.ADMIN_MANAGE_SERVERS)
+@plugins.base.arguments(
+    plugins.base.Arg("cancel", And(str, Use(lambda x: x.lower() == "cancel")), default=False, optional=True)
 )
 async def shutdown(cancel: bool) -> str:
     """

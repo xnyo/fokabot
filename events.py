@@ -13,7 +13,7 @@ bot = Bot()
 async def connected():
     bot.logger.debug("Ws client started, now logging in")
     try:
-        bot.client.send(WsAuth(bot.nickname, bot.bancho_api_client.token))
+        bot.client.send(WsAuth(bot.bancho_api_client.token))
         results = await bot.client.wait("msg:auth_success", "msg:auth_failure")
         if "msg:auth_failure" in results:
             bot.logger.info("Login failed")

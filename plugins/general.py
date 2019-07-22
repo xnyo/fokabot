@@ -4,7 +4,7 @@ import random
 
 from schema import Use, And
 
-import plugins
+import plugins.base
 import plugins.base.filters
 from constants.action import Action
 from singletons.bot import Bot
@@ -14,7 +14,7 @@ bot = Bot()
 
 
 @bot.command("roll")
-@plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
+@plugins.base.arguments(plugins.base.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
 async def roll(sender: Dict[str, Any], number: int) -> str:
     """
     !roll <number>
@@ -27,7 +27,7 @@ async def roll(sender: Dict[str, Any], number: int) -> str:
 
 
 @bot.command("help")
-@plugins.base
+@plugins.base.base
 async def help_() -> str:
     """
     !help
@@ -38,8 +38,8 @@ async def help_() -> str:
 
 
 @bot.command("bloodcat")
-@plugins.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
-@plugins.base
+@plugins.base.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
+@plugins.base.base
 async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
     """
     !bloodcat
