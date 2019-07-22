@@ -4,6 +4,7 @@ import asyncio
 
 from constants.events import WsEvent
 from singletons.bot import Bot
+from utils.rippleapi import BanchoClientType
 from ws.client import LoginFailedError
 from ws.messages import WsSubscribe, WsAuth, WsJoinChatChannel, WsPong, WsChatMessage
 
@@ -70,6 +71,9 @@ async def ping():
 async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool, message: str, **kwargs) -> None:
     is_command = message.startswith(bot.command_prefix)
     is_action = message.startswith("\x01ACTION")
+    if sender["type"] == BanchoClientType.FAKE:
+        # Do not process messages by fake Foka
+        return
     bot.logger.debug(f"{sender['username']}{sender['api_identifier']}: {message} (cmd:{is_command}, act:{is_action})")
     # nick = sender["username"]
     if sender["username"].lower() == bot.nickname.lower() or (not is_command and not is_action):
@@ -91,7 +95,7 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
                 if type(result) not in (tuple, list):
                     result = (result,)
                 for x in result:
-                    bot.client.send(WsChatMessage(x, final_recipient))
+                    bot.send_message(x, final_recipient)
 
 
 @bot.client.on("disconnected")
@@ -117,7 +121,7 @@ async def on_disconnect(*args, **kwargs):
         """
         await bot.client.start()
         await bot.client.wait("ready")
-        bot.client.send(WsChatMessage("Reconnected.", "#admin"))
+        bot.send_message("Reconnected.", "#admin")
 
     bot.reset()
     bot.reconnecting = True

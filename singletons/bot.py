@@ -3,6 +3,7 @@ import signal
 
 import plugins.base
 from ws.client import WsClient
+from ws.messages import WsChatMessage
 
 try:
     import ujson as json
@@ -81,6 +82,17 @@ class Bot:
         self.pubsub_binding_manager: PubSubBindingManager = PubSubBindingManager()
 
         self.login_channels_left = set()
+        self.match_delayed_start_tasks: Dict[int, asyncio.Task] = {}
+
+    def send_message(self, message: str, recipient: str) -> None:
+        """
+        Shorthand to send a message
+
+        :param message:
+        :param recipient:
+        :return:
+        """
+        self.client.send(WsChatMessage(message, recipient))
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:

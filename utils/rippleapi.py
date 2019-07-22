@@ -229,6 +229,8 @@ class BanchoClientType(IntEnum):
     """
     OSU = 0
     IRC = auto()
+    WS = auto()
+    FAKE = auto()
 
 
 class BanchoApiClient(RippleApiBaseClient):
@@ -401,6 +403,12 @@ class BanchoApiClient(RippleApiBaseClient):
 
     async def clear_host(self, match_id: int) -> None:
         await self.transfer_host(match_id, api_identifier=None)
+
+    async def start_match(self, match_id: int, force: Optional[bool] = False) -> None:
+        await self._request(f"multiplayer/{match_id}/start", "POST", {"force": force})
+
+    async def abort_match(self, match_id: int, force: Optional[bool] = False) -> None:
+        await self._request(f"multiplayer/{match_id}/abort", "POST")
 
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")

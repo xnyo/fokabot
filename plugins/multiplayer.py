@@ -1,8 +1,12 @@
 from typing import Optional, Dict, Any, Callable
 
+import asyncio
+
+import logging
 from schema import Schema, Use, And
 
 import plugins.base
+import utils
 from plugins.base import Arg
 from constants.privileges import Privileges
 from singletons.bot import Bot
@@ -15,7 +19,7 @@ def resolve_mp(f: Callable) -> Callable:
     async def wrapper(*, recipient: Dict[str, Any], **kwargs):
         assert recipient["display_name"] == "#multiplayer"
         match_id = int(recipient["name"].split("_")[1])
-        return await f(match_id=match_id, **kwargs)
+        return await f(match_id=match_id, recipient=recipient, **kwargs)
     return wrapper
 
 
@@ -100,3 +104,73 @@ async def move(username: str, match_id: int) -> str:
 async def clear_host(match_id: int) -> str:
     await bot.bancho_api_client.clear_host(match_id)
     return f"Host removed."
+
+
+@bot.command("mp start")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("seconds", And(Use(int), lambda x: x >= 0), default=0, optional=True),
+    Arg("force", And(str, Use(lambda x: x == "force")), default=False, optional=True)
+)
+async def start(match_id: int, seconds: int, recipient: Dict[str, Any], force: bool) -> str:
+    async def start_after(timer_seconds: int):
+        try:
+            logging.debug("Start after task started")
+            while timer_seconds > 0:
+                if timer_seconds % 10 == 0 or timer_seconds < 10:
+                    bot.send_message(f"Match starts in {timer_seconds} seconds.", recipient["name"])
+                await asyncio.sleep(1)
+                timer_seconds -= 1
+            logging.debug("Starting")
+            try:
+                await bot.bancho_api_client.start_match(match_id, force=force)
+            except utils.rippleapi.RippleApiResponseError as e:
+                if e.data.get("code", None) == 409:
+                    bot.send_message(
+                        "Cannot start the match. There may be not enough players ready, invalid teams or the match"
+                        "may already be in progress. Use '!mp start x force' to start the match anyways.",
+                        recipient["name"]
+                    )
+                else:
+                    bot.send_message(e.data.get("message", "Unknown API error"), recipient["name"])
+            else:
+                bot.send_message("Match started!", recipient["name"])
+        except asyncio.CancelledError:
+            bot.send_message("Match timer start cancelled!", recipient["name"])
+        finally:
+            # wtf pycharm
+            bot.match_delayed_start_tasks.pop(match_id, None)
+    if match_id in bot.match_delayed_start_tasks:
+        return "This match is starting soon."
+    logging.debug(f"Seconds: {seconds}")
+    bot.match_delayed_start_tasks[match_id] = asyncio.ensure_future(start_after(seconds))
+    if seconds > 0:
+        # TODO: lock match for real
+        return f"Match starts in {seconds} seconds. The match has been locked. " \
+            f"Please don't leave the match during the " \
+            f"countdown or you might receive a penality."
+
+
+@bot.command("mp abort")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def abort(match_id: int) -> str:
+    had_timer = True
+    try:
+        bot.match_delayed_start_tasks.pop(match_id).cancel()
+    except KeyError:
+        had_timer = False
+
+    try:
+        await bot.bancho_api_client.abort_match(match_id)
+        return "Match aborted!"
+    except utils.rippleapi.RippleApiResponseError as e:
+        # 409 = match not in progress
+        # and it is prefectly acceptable if we had a timer
+        # (match not started yet)
+        if e.data.get("code", None) != 409 or not had_timer:
+            raise e

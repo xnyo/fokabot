@@ -4,7 +4,6 @@ from aiohttp import web
 
 from singletons.bot import Bot
 from singletons.config import Config
-from ws.messages import WsChatMessage
 
 
 class FokaAPIError(Exception):
@@ -22,7 +21,7 @@ async def send_message(request):
         request_data = await request.json()
         if "message" not in request_data or "target" not in request_data:
             raise FokaAPIError(400, "Missing required arguments.")
-        Bot().client.send(WsChatMessage(request_data["message"], request_data["target"]))
+        Bot().send_message(request_data["message"], request_data["target"])
         resp = {"code": 200, "message": "ok"}
     except FokaAPIError as e:
         resp = {"code": e.status, "message": e.message}
