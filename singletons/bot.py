@@ -118,7 +118,7 @@ class Bot:
             self.logger.info("Interrupted.")
             self.loop.run_until_complete(self.dispose())
             self.loop.stop()
-            self.logger.info("Goodbye!")
+            self.logger.info("Komm Süsser Tod.")
 
     async def dispose(self):
         """
