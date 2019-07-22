@@ -5,6 +5,7 @@ import random
 from schema import Use, And
 
 import plugins
+import plugins.base.filters
 from constants.action import Action
 from singletons.bot import Bot
 from utils.rippleapi import BanchoClientType
@@ -14,20 +15,20 @@ bot = Bot()
 
 @bot.command("roll")
 @plugins.arguments(plugins.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
-async def roll(username: str, channel: str, number: int, *args, **kwargs) -> str:
+async def roll(sender: Dict[str, Any], number: int) -> str:
     """
     !roll <number>
 
-    :param username:
-    :param channel:
+    :param sender:
     :param number: max number, must > 0. Default: 100
     :return: a random number between 0 and some other number
     """
-    return f"{username} rolls {random.randrange(0, number)} points!"
+    return f"{sender['username']} rolls {random.randrange(0, number)} points!"
 
 
 @bot.command("help")
-async def help_(username: str, channel: str, message: str, *args, **kwargs) -> str:
+@plugins.base
+async def help_() -> str:
     """
     !help
 
@@ -37,18 +38,19 @@ async def help_(username: str, channel: str, message: str, *args, **kwargs) -> s
 
 
 @bot.command("bloodcat")
-async def bloodcat(username: str, channel: str, message: str, *args, **kwargs) -> Optional[str]:
+@plugins.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
+@plugins.base
+async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
     """
     !bloodcat
 
     :return: a link to download the currently played beatmap from bloodcat.
              Works only in #multiplayer and #spectator
     """
-    is_multi = channel.startswith("#multi_")
-    is_spect = channel.startswith("#spect_")
-    if not is_multi and not is_spect:
-        return
-    temp_id = int(channel.split("_")[1])
+    is_multi = recipient["display_name"] == "#multiplayer"
+    is_spect = recipient["display_name"] == "#spectator"
+    assert is_multi or is_spect
+    temp_id = int(recipient["name"].split("_")[1])
     if is_multi:
         match_info = await bot.bancho_api_client.get_match_info(temp_id)
         if match_info.get("beatmap", None) is None:

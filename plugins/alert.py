@@ -1,6 +1,7 @@
 from schema import Schema
 
 import plugins
+import plugins.base.utils
 from constants.privileges import Privileges
 from singletons.bot import Bot
 
@@ -8,18 +9,18 @@ bot = Bot()
 
 
 @bot.command("alert")
-@plugins.arguments(plugins.Arg("message", Schema(str), rest=True))
 @plugins.protected(Privileges.ADMIN_SEND_ALERTS)
-async def alert(username: str, channel: str, message: str) -> None:
-    await bot.bancho_api_client.mass_alert(message)
+@plugins.arguments(plugins.Arg("the_message", Schema(str), rest=True))
+async def alert(the_message: str) -> None:
+    await bot.bancho_api_client.mass_alert(the_message)
 
 
 @bot.command("alertuser")
-@plugins.arguments(
-    plugins.Arg("target_username", Schema(str)),
-    plugins.Arg("message", Schema(str), rest=True)
-)
 @plugins.protected(Privileges.ADMIN_SEND_ALERTS)
-@plugins.resolve_target_username_to_client()
-async def alert(username: str, channel: str, api_identifier: str, message: str, **kwargs) -> None:
-    await bot.bancho_api_client.alert(api_identifier, message)
+@plugins.arguments(
+    plugins.Arg("username", Schema(str)),
+    plugins.Arg("the_message", Schema(str), rest=True)
+)
+async def alert(username: str, the_message: str) -> None:
+    api_identifier = await plugins.base.utils.username_to_client(username)
+    await bot.bancho_api_client.alert(api_identifier, the_message)

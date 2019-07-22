@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from schema import Schema, Use
 
@@ -11,12 +11,12 @@ bot = Bot()
 
 
 @bot.command("mp make")
+@plugins.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.arguments(
     plugins.Arg("name", Schema(str)),
     plugins.Arg("password", Schema(str), default=None, optional=True),
 )
-@plugins.protected(Privileges.USER_TOURNAMENT_STAFF)
-async def make(username: str, channel: str, name: str, password: Optional[str]) -> str:
+async def make(name: str, password: Optional[str]) -> str:
     match_id = await bot.bancho_api_client.create_match(
         name,
         password,
@@ -26,11 +26,10 @@ async def make(username: str, channel: str, name: str, password: Optional[str]) 
 
 
 @bot.command("mp join")
-@plugins.arguments(
-    plugins.Arg("match_id", Use(int)),
-    plugins.Arg("password", Schema(str), default=None, optional=True),
-)
 @plugins.protected(Privileges.USER_TOURNAMENT_STAFF)
-@plugins.resolve_user_to_client()
-async def join(username: str, channel: str, match_id: int, password: str, api_identifier: str) -> None:
-    await bot.bancho_api_client.join_match(api_identifier, match_id, password)
+@plugins.arguments(
+    plugins.Arg("match_id", Use(int))
+)
+async def join(sender: Dict[str, Any], match_id: int) -> str:
+    await bot.bancho_api_client.join_match(sender["api_identifier"], match_id)
+    return f"Making {sender['api_identifier']} join match #{match_id}"

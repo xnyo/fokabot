@@ -369,7 +369,7 @@ class BanchoApiClient(RippleApiBaseClient):
         response = await self._request("multiplayer", "POST", d)
         return response.get("match_id")
 
-    async def join_match(self, api_identifier: str, match_id: int, password: Optional[str]) -> None:
+    async def join_match(self, api_identifier: str, match_id: int, password: Optional[str] = None) -> None:
         await self._request(f"clients/{api_identifier}/join_match", "POST", self.remove_none({
             "match_id": match_id,
             "password": password

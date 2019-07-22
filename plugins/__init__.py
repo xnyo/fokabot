@@ -1,26 +1,28 @@
 from itertools import zip_longest
-from typing import Callable, Any, Tuple, Optional, List
+from typing import Callable, Any, Optional, List, Dict
 
 from schema import SchemaError, Or
 
 from constants.privileges import Privileges
-from singletons.bot import Bot
-from utils.rippleapi import RippleApiError
+from plugins import required_kwargs_only
+from plugins.base.filters import is_private, is_public
+from plugins.base.utils import required_kwargs_only
+from utils.rippleapi import RippleApiError, RippleApiResponseError
 
 
-class Ctx:
-    def __init__(self, username: str, channel: str, privileges: Privileges):
-        self.username = username
-        self.channel = channel
-        self.privileges = privileges
+class GenericBotError(Exception):
+    pass
 
 
 class Arg:
+    forbidden_arg_names = ("sender", "recipient", "pm", "message")
+
     def __init__(
         self, key: Optional[str] = None, schema=None,
         default: Optional[Any] = None, rest: bool = False,
         optional: bool = False, example: Optional[str] = None
     ):
+        assert key not in Arg.forbidden_arg_names, "Forbidden key name"
         self.key = key
         self.schema = schema
         self.default = default
@@ -45,107 +47,68 @@ class BotSyntaxError(Exception):
         self.extra = extra
 
 
-def arguments(*args: Tuple[Arg]) -> Callable:
+def arguments(*args: Arg, intersect_kwargs: bool = True) -> Callable:
     # TODO: Check optional args only at the end
     for x in args:
-        if x.optional:  # pycharm pls
+        if x.optional:
             x.schema = Or(x.schema, x.default)
 
     def decorator(f: Callable) -> Callable:
-        async def wrapper(username: str, channel: str, message: str, parts: List[str], *_, **__) -> Any:
+        async def wrapper(*, parts: List[str], **kwargs) -> Any:
             # parts = message.split(" ")[1:]
             validated_args = {}
-            if args[-1].rest:
-                parts = [y for y in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
-            for arg, part in zip_longest(args, parts, fillvalue=None):
-                try:
-                    if arg is None:
-                        # More arguments than needed (zip_longest)
-                        raise ValueError()
-                    v = arg.schema.validate(part)
-                    if v is None:
-                        raise ValueError()
-                    validated_args[arg.key] = v
-                except (SchemaError, ValueError) as e:
-                    if arg is not None and arg.optional:
-                        validated_args[arg.key] = arg.default
-                    else:
-                        raise BotSyntaxError(args)
-                    # print(e)
-                    # raise BotSyntaxError(args)
-            return await f(username, channel, **validated_args)
+            if args:
+                if args[-1].rest:
+                    parts = [y for y in parts[:len(args) - 1]] + ([" ".join(parts[len(args) - 1:])] if parts[len(args) - 1:] else [])
+                for arg, part in zip_longest(args, parts, fillvalue=None):
+                    try:
+                        if arg is None:
+                            # More arguments than needed (zip_longest)
+                            raise ValueError()
+                        v = arg.schema.validate(part)
+                        if v is None:
+                            raise ValueError()
+                        validated_args[arg.key] = v
+                    except (SchemaError, ValueError) as e:
+                        if arg is not None and arg.optional:
+                            validated_args[arg.key] = arg.default
+                        else:
+                            raise BotSyntaxError(args)
+                        # print(e)
+                        # raise BotSyntaxError(args)
+
+            final_kwargs = {**validated_args, **kwargs}
+            if intersect_kwargs:
+                final_kwargs = required_kwargs_only(f, {**validated_args, **kwargs})
+            return await f(**final_kwargs)
         return wrapper
     return decorator
-
-
-def resolve_user_to_client(game: bool = True) -> Callable:
-    def decorator(f: Callable) -> Callable:
-        async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
-            user_id = await Bot().ripple_api_client.what_id(username)
-            if user_id is None:
-                return "Do you even exist?"
-            client = await Bot().bancho_api_client.get_client(user_id, game_only=game)
-            if client is None:
-                return "I can't find a client that belongs to you"
-            api_identifier = client["api_identifier"]
-            return await f(
-                username, channel, *args, api_identifier=api_identifier, **kwargs
-            )
-        return wrapper
-    return decorator
-
-
-def resolve_target_username_to_client(game: bool = True) -> Callable:
-    def decorator(f: Callable) -> Callable:
-        async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
-            user_id = await Bot().ripple_api_client.what_id(target_username)
-            if user_id is None:
-                return "No such user."
-            client = await Bot().bancho_api_client.get_client(user_id, game_only=game)
-            if client is None:
-                return "This user is not connected right now"
-            api_identifier = client["api_identifier"]
-            return await f(
-                username, channel, *args, target_username=target_username, api_identifier=api_identifier, **kwargs
-            )
-        return wrapper
-    return decorator
-
-
-def resolve_target_username_to_user_id(f: Callable) -> Callable:
-    async def wrapper(username: str, channel: str, *args, target_username: str, **kwargs) -> Any:
-        user_id = await Bot().ripple_api_client.what_id(target_username)
-        if user_id is None:
-            return f"No such user ({target_username})"
-        return await f(username, channel, *args, target_username=target_username, target_user_id=user_id, **kwargs)
-    return wrapper
-
-
-def _private_public_wrapper(private: bool, f: Callable) -> Callable:
-    async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
-        if channel.startswith("#") == private:  # 🅱️onchi insegna
-            return
-        return await f(username, channel, *args, **kwargs)
-    return wrapper
 
 
 def private_only(f: Callable) -> Callable:
-    return _private_public_wrapper(True, f)
+    return trigger_filter_and(is_private)(f)
 
 
 def public_only(f: Callable) -> Callable:
-    return _private_public_wrapper(False, f)
+    return trigger_filter_and(is_public)(f)
 
 
+# TODO: Sentry
 def errors(f: Callable) -> Callable:
-    async def wrapper(username: str, channel: str, message: str, *args, command_name: str, **kwargs) -> Any:
+    async def wrapper(
+        *, command_name: str, **kwargs
+    ) -> Any:
         try:
-            return await f(username, channel, message, *args, **kwargs)
-        except RippleApiError as e:
+            return await f(**kwargs)
+        except RippleApiResponseError as e:
             msg = e.data.get("message", None)
             if msg is None:
                 return f"API Error: {e}"
             return msg
+        except RippleApiError as e:
+            return f"General API error: {e}"
+        except GenericBotError as e:
+            return str(e)
         except BotSyntaxError as e:
             first_optional = next((x for x in e.args if x.optional), None)
             if e.extra is not None:
@@ -155,20 +118,32 @@ def errors(f: Callable) -> Callable:
 
 
 def base(f: Callable) -> Callable:
-    return errors(f)
+    return arguments(intersect_kwargs=True)(f)
 
 
 def protected(required_privileges: Privileges) -> Callable:
     def decorator(f: Callable) -> Callable:
-        async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
-            privileges = await Bot().privileges_cache.get(username)
-            if not privileges:
-                return "Ripple API Error: Cannot get privileges"
-            if not privileges.has(required_privileges):
+        async def wrapper(*, sender: Dict[str, Any], **kwargs) -> Any:
+            if not Privileges(sender["privileges"]).has(required_privileges):
                 return "You don't have the required privileges to trigger this command."
-            return await f(
-                username, channel, *args, **kwargs
-            )
+            return await f(sender=sender, **kwargs)
         return wrapper
     return decorator
 
+
+def _trigger_filter(*filters: Callable[..., bool], checker: Callable[..., bool] = None) -> Callable:
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(**kwargs) -> Any:
+            if not checker(x(**required_kwargs_only(x, kwargs)) for x in filters):
+                return
+            return await f(**kwargs)
+        return wrapper
+    return decorator
+
+
+def trigger_filter_or(*filters: Callable[..., bool]) -> Callable:
+    return _trigger_filter(*filters, checker=any)
+
+
+def trigger_filter_and(*filters: Callable[..., bool]) -> Callable:
+    return _trigger_filter(*filters, checker=all)

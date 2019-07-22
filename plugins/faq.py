@@ -13,12 +13,10 @@ bot = Bot()
 
 @bot.command("faq")
 @plugins.arguments(plugins.Arg("topic", Schema(str)))
-async def faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
+async def faq(topic: str) -> str:
     """
     !faq <topic>
 
-    :param username:
-    :param channel:
     :param topic: FAQ topic name. Will get it from FokaBot's tinydb
     :return: the topic content, if it exists, or an error message
     """
@@ -31,18 +29,16 @@ async def faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
 
 
 @bot.command("modfaq")
+@plugins.protected(Privileges.ADMIN_CHAT_MOD)
 @plugins.arguments(
     plugins.Arg("topic", Schema(str)),
     plugins.Arg("new_response", Schema(str), rest=True),
 )
-@plugins.protected(Privileges.ADMIN_CHAT_MOD)
-async def mod_faq(username: str, channel: str, topic: str, new_response: str, *args, **kwargs) -> str:
+async def mod_faq(topic: str, new_response: str) -> str:
     """
     !modfaq <topic> <new_response>
     Edits an existing topic in tinydb. Doesn't do anything if the specified topic does not exist.
 
-    :param username:
-    :param channel:
     :param topic: the name of the FAQ topic to edit
     :param new_response: the new response
     :return: success message
@@ -53,12 +49,11 @@ async def mod_faq(username: str, channel: str, topic: str, new_response: str, *a
 
 
 @bot.command("lsfaq")
-async def ls_faq(username: str, channel: str, *args, **kwargs) -> str:
+@plugins.base
+async def ls_faq() -> str:
     """
     !lsfaq
 
-    :param username:
-    :param channel:
     :return: A list of all available FAQ topics
     """
     async with AIOTinyDB(".db.json") as db:
@@ -66,15 +61,13 @@ async def ls_faq(username: str, channel: str, *args, **kwargs) -> str:
 
 
 @bot.command("delfaq")
-@plugins.arguments(plugins.Arg("topic", Schema(str)))
 @plugins.protected(Privileges.ADMIN_CHAT_MOD)
-async def del_faq(username: str, channel: str, topic: str, *args, **kwargs) -> str:
+@plugins.arguments(plugins.Arg("topic", Schema(str)))
+async def del_faq(topic: str) -> str:
     """
     !delfaq <topic>
     Deletes a FAQ topic from tinydb, if it exists.
 
-    :param username:
-    :param channel:
     :param topic: the name of the topic to delete
     :return: a success message
     """

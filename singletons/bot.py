@@ -21,13 +21,12 @@ from utils import singleton
 from utils.letsapi import LetsApiClient
 from utils.np_storage import NpStorage
 from utils.periodic_tasks import periodic_task
-from utils.privileges_cache import PrivilegesCache
 from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
 
 
 @singleton.singleton
 class Bot:
-    VERSION: str = "2.0.0"
+    VERSION: str = "2.1.0"
 
     def __init__(
         self, *, nickname: str = "FokaBot", wss: bool = True,
@@ -50,7 +49,7 @@ class Bot:
         self.cheesegull_api_client = cheesegull_api_client
         self.lets_api_client = lets_api_client
         self.web_app: web.Application = web.Application()
-        self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
+        # self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
         self.np_storage: NpStorage = NpStorage()
         self.periodic_tasks: List[asyncio.Task] = []
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
@@ -105,8 +104,8 @@ class Bot:
         asyncio.get_event_loop().run_until_complete(self._initialize_redis())
         self.periodic_tasks.extend(
             (
-                self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
-                self.loop.create_task(periodic_task(seconds=60)(self.np_storage.purge))
+                # self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
+                self.loop.create_task(periodic_task(seconds=60)(self.np_storage.purge)),
             )
         )
 
@@ -154,10 +153,10 @@ class Bot:
         """
         Registers a new command (decorator)
         ```
-        >>> @bot.command("roll")
-        >>> @base
-        >>> async def roll_handler(username: str, channel: str) -> str:
-        >>>     return "response"
+        >>> @bot.command("hello")
+        >>> @plugins.base
+        >>> async def hello() -> str:
+        >>>     return "hi!"
         ```
 
         :param command_name: command name
@@ -168,7 +167,7 @@ class Bot:
         if func is None:
             return functools.partial(self.command, command_name, action)  # type: ignore
         import plugins
-        wrapped = plugins.base(func)
+        wrapped = plugins.errors(func)
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
         if type(command_name) not in (list, tuple):

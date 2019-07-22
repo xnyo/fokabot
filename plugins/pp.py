@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Any, Union
+from typing import Optional, Callable, Any, Union, Dict
 
 import re
 from schema import And, Use
@@ -24,19 +24,19 @@ NP_REGEX = re.compile(
 
 def resolve_np_info(f: Callable) -> Callable:
     """
-    Decorator that passes bot.np_storage[username] to the
-    np_info kwarg of the decorated function. If there username
+    Decorator that passes bot.np_storage[api_identifier] to the
+    np_info kwarg of the decorated function. If the api_identifier
     is not in the storage, an error message is returned instead.
 
     :param f:
     :return:
     """
-    async def wrapper(username: str, channel: str, *args, **kwargs) -> Any:
+    async def wrapper(*, sender: Dict[str, Any], **kwargs) -> Any:
         try:
-            np_info = bot.np_storage[username]
+            np_info = bot.np_storage[sender["api_identifier"]]
         except KeyError:
             return "Please send me a song with /np first."
-        return await f(username, channel, *args, np_info=np_info, **kwargs)
+        return await f(np_info=np_info, sender=sender, **kwargs)
     return wrapper
 
 
@@ -57,8 +57,8 @@ def np_info_response(f: Callable) -> Callable:
     :param f:
     :return:
     """
-    async def wrapper(username: str, channel: str, *args, np_info: Optional[NpInfo] = None, **kwargs) -> Any:
-        r = await f(username, channel, *args, np_info=np_info, **kwargs)
+    async def wrapper(*, np_info: Optional[NpInfo] = None, **kwargs) -> Any:
+        r = await f(np_info=np_info, **kwargs)
         if r is not None and type(r) is not NpInfo:
             return r
         np_info = next((x for x in (r, np_info) if type(x) is NpInfo), None)
@@ -78,22 +78,19 @@ def np_info_response(f: Callable) -> Callable:
 
 
 @bot.command("last")
-async def last(username: str, channel: str, *args, **kwargs) -> str:
+@plugins.base
+async def last(sender: Dict[str, Any], pm: bool) -> str:
     """
     !last
     Returns some information about the most recent score submitted by the user.
 
-    :param username:
-    :param channel:
-    :param args:
-    :param kwargs:
     :return:
     """
-    recent_scores = await bot.ripple_api_client.recent_scores(username=username)
+    recent_scores = await bot.ripple_api_client.recent_scores(username=sender["username"])
     if not recent_scores:
         return "You have no scores :("
     score = recent_scores[0]
-    msg = f"{username} | " if channel.startswith("#") else ""
+    msg = f"{sender['username']} | " if not pm else ""
     msg += f"[http://osu.ppy.sh/b/{score['beatmap']['beatmap_id']} {score['beatmap']['song_name']}]"
     msg += f" <{GameMode(score['play_mode']).for_db()}>"
     if score['mods'] != 0:
@@ -111,16 +108,11 @@ async def last(username: str, channel: str, *args, **kwargs) -> str:
 )
 @plugins.private_only
 @np_info_response
-async def np(username: str, channel: str, message: str, *args, **kwargs) -> Union[NpInfo, str, None]:
+async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, None]:
     """
     /np
     Returns PP information about the map provided by the user. PM only.
 
-    :param username:
-    :param channel:
-    :param message:
-    :param args:
-    :param kwargs:
     :return:
     """
     match = NP_REGEX.fullmatch(message)
@@ -135,26 +127,24 @@ async def np(username: str, channel: str, message: str, *args, **kwargs) -> Unio
 
     game_mode = GameMode.np_factory(game_mode)
     mods = Mod.np_factory(mods_str)
-    bot.np_storage[username] = NpInfo(id_, game_mode, mods)
-    return bot.np_storage[username]
+    bot.np_storage[sender["api_identifier"]] = NpInfo(id_, game_mode, mods)
+    return bot.np_storage[sender["api_identifier"]]
 
 
 @bot.command("with")
 @plugins.private_only
-@plugins.arguments(plugins.Arg("mods", And(str, Use(Mod.short_factory))))
+@plugins.arguments(
+    plugins.Arg("mods", And(str, Use(Mod.short_factory))),
+    intersect_kwargs=False
+)
 @resolve_np_info
 @np_info_response
-async def with_(username: str, channel: str, mods: Mod, *, np_info: NpInfo, **kwargs) -> None:
+async def with_(mods: Mod, np_info: NpInfo, **_) -> None:
     """
     !with mods
     Returns PP information about the most recent map sent by this user to the bot with /np
     "mods" is a combination of short mod acronyms, such as "HDHR", "HDDT", "NF", ...
 
-    :param username:
-    :param channel:
-    :param mods:
-    :param np_info:
-    :param kwargs:
     :return:
     """
     np_info.mods = mods
@@ -162,20 +152,18 @@ async def with_(username: str, channel: str, mods: Mod, *, np_info: NpInfo, **kw
 
 @bot.command("acc")
 @plugins.private_only
-@plugins.arguments(plugins.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)))
+@plugins.arguments(
+    plugins.Arg("accuracy", And(str, Use(float), Use(lambda x: round(x, 2)), lambda x: 0 < x <= 100)),
+    intersect_kwargs=False
+)
 @resolve_np_info
 @np_info_response
-async def acc(username: str, channel: str, accuracy: float, *, np_info: NpInfo, **kwargs) -> None:
+async def acc(accuracy: float, np_info: NpInfo, **_) -> None:
     """
     !acc accuracy
     Returns PP information about the most recent map sent by this user to the bot with /np
     "accuracy" is the input accuracy, 0 < accuracy <= 100
 
-    :param username:
-    :param channel:
-    :param accuracy:
-    :param np_info:
-    :param kwargs:
     :return:
     """
     if accuracy in (100, 99, 98, 95):

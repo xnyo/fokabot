@@ -67,30 +67,31 @@ async def ping():
 
 
 @bot.client.on("msg:chat_message")
-async def on_message(sender: Dict[str, Any], recipient: str, message: str, **kwargs) -> None:
+async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool, message: str, **kwargs) -> None:
     is_command = message.startswith(bot.command_prefix)
     is_action = message.startswith("\x01ACTION")
     bot.logger.debug(f"{sender['username']}{sender['api_identifier']}: {message} (cmd:{is_command}, act:{is_action})")
-    nick = sender["username"]
-    if nick.lower() == bot.nickname.lower() or (not is_command and not is_action):
+    # nick = sender["username"]
+    if sender["username"].lower() == bot.nickname.lower() or (not is_command and not is_action):
         return
-    if recipient.lower() == bot.nickname.lower():
-        recipient = nick
+    if pm:
+        final_recipient = sender["username"]
+    else:
+        final_recipient = recipient["name"]
     raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
     for k, v in (bot.command_handlers if is_command else bot.action_handlers).items():
         if raw_message.startswith(k):
             bot.logger.debug(f"Triggered {v} ({k}) [{'command' if is_command else 'action'}]")
             command_name_length = len(k.split(" "))
             result = await v(
-                username=nick, channel=recipient, message=message,
-                parts=message.split(" ")[command_name_length:],
-                command_name=k
+                sender=sender, recipient=recipient, pm=pm, message=message,
+                parts=message.split(" ")[command_name_length:], command_name=k
             )
             if result is not None:
                 if type(result) not in (tuple, list):
                     result = (result,)
                 for x in result:
-                    bot.client.send(WsChatMessage(x, recipient))
+                    bot.client.send(WsChatMessage(x, final_recipient))
 
 
 @bot.client.on("disconnected")
