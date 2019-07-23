@@ -60,8 +60,9 @@ async def join(sender: Dict[str, Any], match_id: int) -> str:
 @plugins.base.multiplayer_only
 @resolve_mp
 @plugins.base.base
-async def close(match_id: int) -> None:
+async def close(match_id: int, sender: Dict[str, Any]) -> None:
     await bot.bancho_api_client.delete_match(match_id)
+    bot.send_message(f"Match #{match_id} has been disposed", sender["username"])
 
 
 @bot.command("mp size")
