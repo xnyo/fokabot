@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, Tuple
 
 import asyncio
 
@@ -7,12 +7,12 @@ from schema import Schema, Use, And
 
 import plugins.base
 import utils
+from constants.mods import Mod, ModSpecialMode
 from plugins.base import Arg
 from constants.privileges import Privileges
 from singletons.bot import Bot
-from utils import general
+from utils import general, schema
 from utils.rippleapi import BanchoApiBeatmap
-from utils.schema import NonEmptyString
 
 bot = Bot()
 
@@ -248,3 +248,23 @@ async def random_password(match_id: int, sender: Dict[str, Any]) -> str:
     await bot.bancho_api_client.edit_match(match_id, password=passwd)
     bot.send_message(f"New generated password for match #{match_id}: {passwd}", sender["username"])
     return "A new password has been set."
+
+
+@bot.command("mp mods")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg(
+        "mods",
+        schema.ModStringMultipleAndSpecialMode,
+        rest=True
+    )
+)
+async def mods_(match_id: int, mods: Tuple[ModSpecialMode, Mod]) -> str:
+    special_mode, mods = mods
+    await bot.bancho_api_client.edit_match(match_id, mods=mods, free_mod=special_mode == ModSpecialMode.FREE_MODS)
+    if mods == Mod.NO_MOD:
+        # NO_MOD is empty string in Mod.__str__()
+        mods = "NO MOD"
+    return f"Mods set to {mods}, free mods = {special_mode == ModSpecialMode.FREE_MODS}"

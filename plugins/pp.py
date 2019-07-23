@@ -7,6 +7,7 @@ import plugins.base
 from singletons.bot import Bot
 from constants.game_modes import GameMode
 from constants.mods import Mod
+from utils import schema
 from utils.letsapi import LetsApiError
 from utils.np_storage import NpInfo
 
@@ -134,7 +135,7 @@ async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, No
 @bot.command("with")
 @plugins.base.private_only
 @plugins.base.arguments(
-    plugins.base.Arg("mods", And(str, Use(Mod.short_factory))),
+    plugins.base.Arg("mods", schema.ModStringSingle),
     intersect_kwargs=False
 )
 @resolve_np_info

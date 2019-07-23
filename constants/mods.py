@@ -1,7 +1,14 @@
+from typing import Iterable
+
 import operator
 from functools import reduce
 
-from enum import IntFlag
+from enum import IntFlag, auto
+
+
+class ModSpecialMode(IntFlag):
+    NORMAL = 0
+    FREE_MODS = auto()
 
 
 class Mod(IntFlag):
@@ -66,11 +73,28 @@ class Mod(IntFlag):
 
     @classmethod
     def short_factory(cls, readable_mods: str) -> "Mod":
+        """
+        Returns a Mod instance from a string of short mods. With no spaces, case-insensitive. (eg: HDDTHR).
+
+        :param readable_mods: string containing the mods
+        :return:
+        """
         readable_mods = readable_mods.strip()
         return reduce(
             operator.or_,
             (_MODS.get(readable_mods[i:i + 2].upper(), Mod.NO_MOD) for i in range(0, len(readable_mods), 2))
         )
+
+    @classmethod
+    def iterable_factory(cls, readable_mods: Iterable[str]) -> "Mod":
+        """
+        Creates a Mod instance from an iterable of readable mods acronyms. Case-insensitive.
+        Eg: ["HD", "DT"]
+
+        :param readable_mods: iterable of readable mods
+        :return: Mod instance
+        """
+        return reduce(operator.or_, (_MODS.get(x.strip().upper(), Mod.NO_MOD) for x in readable_mods))
 
 
 _ACRONYMS = {
