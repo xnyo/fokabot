@@ -8,6 +8,7 @@ from schema import Schema, Use, And
 import plugins.base
 import utils
 from constants.mods import Mod, ModSpecialMode
+from constants.teams import Team
 from plugins.base import Arg
 from constants.privileges import Privileges
 from singletons.bot import Bot
@@ -268,3 +269,18 @@ async def mods_(match_id: int, mods: Tuple[ModSpecialMode, Mod]) -> str:
         # NO_MOD is empty string in Mod.__str__()
         mods = "NO MOD"
     return f"Mods set to {mods}, free mods = {special_mode == ModSpecialMode.FREE_MODS}"
+
+
+@bot.command("mp team")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("username", Schema(str)),
+    Arg("colour", And(Use(lambda x: Team[x.strip().upper()]), lambda x: x != Team.NEUTRAL))
+)
+async def team(match_id: int, username: str, colour: Team) -> str:
+    assert colour != Team.NEUTRAL
+    api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
+    await bot.bancho_api_client.set_team(match_id, api_identifier, colour)
+    return f"Teams updated."

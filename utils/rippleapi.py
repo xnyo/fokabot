@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from enum import IntEnum, auto
 
 from constants.game_modes import GameMode
+from constants.teams import Team
 
 
 class BanchoApiBeatmap:
@@ -196,6 +197,7 @@ class RippleApiBaseClient(ABC):
                         # self.logger.debug(await response.text())
                         # self.logger.debug(response.headers)
                         result = await response.json(loads=ujson.loads)
+                        self.logger.debug(f"[{method}] {url} -> {result}")
                 except (aiohttp.ServerConnectionError, aiohttp.ClientError, ValueError) as e:
                     raise RippleApiFatalError(e)
 
@@ -427,6 +429,12 @@ class BanchoApiClient(RippleApiBaseClient):
         if "mods" in kwargs:
             kwargs["mods"] = int(kwargs["mods"])
         await self._request(f"multiplayer/{match_id}", "POST", self.remove_none(kwargs))
+
+    async def set_team(self, match_id: int, api_identifier: str, team: Team) -> None:
+        await self._request(f"multiplayer/{match_id}/set_team", "POST", {
+            "api_identifier": api_identifier,
+            "team": int(team)
+        })
 
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")
