@@ -174,3 +174,16 @@ async def abort(match_id: int) -> str:
         # (match not started yet)
         if e.data.get("code", None) != 409 or not had_timer:
             raise e
+
+
+@bot.command("mp invite")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("username", Schema(str))
+)
+async def invite(match_id: int, username: str) -> str:
+    user_id = await plugins.base.utils.username_to_user_id(username)
+    await bot.bancho_api_client.invite(match_id, user_id)
+    return f"{username} has been invited to this match"

@@ -407,8 +407,14 @@ class BanchoApiClient(RippleApiBaseClient):
     async def start_match(self, match_id: int, force: Optional[bool] = False) -> None:
         await self._request(f"multiplayer/{match_id}/start", "POST", {"force": force})
 
-    async def abort_match(self, match_id: int, force: Optional[bool] = False) -> None:
+    async def abort_match(self, match_id: int) -> None:
         await self._request(f"multiplayer/{match_id}/abort", "POST")
+
+    async def invite(self, match_id: int, user_id: Optional[int] = None, api_identifier: Optional[str] = None) -> None:
+        await self._request(f"multiplayer/{match_id}/invite", "POST", self.remove_none({
+            "user_id": user_id,
+            "api_identifier": api_identifier
+        }))
 
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")
