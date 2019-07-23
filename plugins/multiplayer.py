@@ -80,7 +80,7 @@ async def size_(match_id: int, slots: int) -> str:
 @resolve_mp
 @plugins.base.arguments(
     Arg("username", Schema(str)),
-    Arg("slot", And(Use(int), lambda x: 0 <= x < 16, error="The slots number must be between 2 and 16 (inclusive)"))
+    Arg("slot", And(Use(int), lambda x: 0 <= x < 16, error="The slots index must be between 0 and 16 (inclusive)"))
 )
 async def move(username: str, slot: int, match_id: int) -> str:
     api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
@@ -261,7 +261,8 @@ async def random_password(match_id: int, sender: Dict[str, Any]) -> str:
     Arg(
         "mods",
         schema.ModStringMultipleAndSpecialMode,
-        rest=True
+        rest=True,
+        example="'DT freemod', 'DT HD HR'"
     )
 )
 async def mods_(match_id: int, mods: Tuple[ModSpecialMode, Mod]) -> str:
@@ -279,7 +280,7 @@ async def mods_(match_id: int, mods: Tuple[ModSpecialMode, Mod]) -> str:
 @resolve_mp
 @plugins.base.arguments(
     Arg("username", Schema(str)),
-    Arg("colour", And(Use(lambda x: Team[x.strip().upper()]), lambda x: x != Team.NEUTRAL))
+    Arg("colour", And(Use(lambda x: Team[x.strip().upper()]), lambda x: x != Team.NEUTRAL), example="red/blue")
 )
 async def team(match_id: int, username: str, colour: Team) -> str:
     assert colour != Team.NEUTRAL
