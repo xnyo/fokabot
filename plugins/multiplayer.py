@@ -69,7 +69,7 @@ async def close(match_id: int) -> None:
 @plugins.base.arguments(
     Arg("slots", And(Use(int), lambda x: 2 <= x <= 16, error="The slots number must be between 2 and 16 (inclusive)"))
 )
-async def size(match_id: int, slots: int) -> str:
+async def size_(match_id: int, slots: int) -> str:
     await bot.bancho_api_client.resize_match(match_id, slots)
     return "Match size changed"
 
@@ -293,18 +293,44 @@ async def team(match_id: int, username: str, colour: Team) -> str:
 @plugins.base.multiplayer_only
 @resolve_mp
 @plugins.base.arguments(
-    Arg("team_type", And(Use(int), Use(TeamType))),
-    Arg("scoring_type", And(Use(int), Use(ScoringType)), optional=True, default=None),
-    Arg("size_", Use(int), optional=True, default=None),
+    Arg(
+        "team_type",
+        And(Use(int), Use(TeamType)), example=", ".join(f"{x.name}={x.value}" for x in TeamType)
+    ),
+    Arg(
+        "scoring_type",
+        And(Use(int), Use(ScoringType)),
+        optional=True, default=None,
+        example=", ".join(f"{x.name}={x.value}" for x in ScoringType)
+    ),
+    Arg(
+        "size", Use(int),
+        optional=True, default=None
+    ),
 )
 async def set_(
-    match_id: int, team_type: TeamType, scoring_type: Optional[ScoringType] = None, size_: Optional[int] = None
+    match_id: int, team_type: TeamType, scoring_type: Optional[ScoringType] = None, size: Optional[int] = None
 ) -> str:
-    if size_ is not None:
-        await bot.bancho_api_client.resize_match(match_id, size_)
+    if size is not None:
+        await bot.bancho_api_client.resize_match(match_id, size)
     await bot.bancho_api_client.edit_match(
         match_id,
         team_type=int(team_type),
         scoring_type=int(scoring_type) if scoring_type is not None else scoring_type
     )
     return f"Match settings updated."
+
+
+@bot.command("mp scorev")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("v", And(Use(int), lambda x: x in (1, 2)), example="1/2")
+)
+async def score_v(match_id: int, v: int) -> str:
+    await bot.bancho_api_client.edit_match(
+        match_id,
+        scoring_type=ScoringType.SCORE if v == 1 else ScoringType.SCORE_V2
+    )
+    return f"Match scoring type set to score v{v}"

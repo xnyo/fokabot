@@ -103,7 +103,7 @@ def errors(f: Callable) -> Callable:
             first_optional = next((x for x in e.args if x.optional), None)
             if e.extra is not None:
                 return e.extra
-            return f"Syntax: !{command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[{str(x)}' for x in e.args)}{']' if first_optional is not None else ''}"
+            return f"Syntax: !{command_name} {' '.join(f'<{x}>' if first_optional is None or x != first_optional else f'[<{str(x)}>' for x in e.args)}{']' if first_optional is not None else ''}"
     return wrapper
 
 
