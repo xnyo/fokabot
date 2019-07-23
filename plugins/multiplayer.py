@@ -16,6 +16,8 @@ from constants.privileges import Privileges
 from singletons.bot import Bot
 from utils import general, schema
 from utils.rippleapi import BanchoApiBeatmap
+from constants.slot_statuses import SlotStatus
+from constants.game_modes import GameMode
 
 bot = Bot()
 
@@ -342,3 +344,56 @@ async def score_v(match_id: int, v: int) -> str:
 @plugins.base.base
 async def help_() -> str:
     return f"Supported subcommands: !mp <{'|'.join(x[len('mp '):] for x in bot.get_commands_with_prefix('mp'))}>"
+
+
+@bot.command("mp info")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def info(match_id: int) -> None:
+    info = await bot.bancho_api_client.get_match_info(match_id)
+    r = f"#multi_{match_id}"
+    bot.send_message("✱ ＭＡＴＣＨ ＩＮＦＯ ✱", r)
+    bot.send_message(f"id: {info['id']}, name: {info['name']}, has password: {info['has_password']}", r)
+    bot.send_message(
+        f"in progress: {info['in_progress']}, "
+        f"game mode: {GameMode(info['game_mode']).name.lower()}, "
+        f"special: {info['special']}",
+        r
+    )
+    bot.send_message(f"owner: {info['api_owner_user_id']}, private history: {info['private_match_history']}", r)
+    bot.send_message(
+        f"scoring type: {ScoringType(info['scoring_type']).name}, "
+        f"team type: {TeamType(info['team_type']).name}, ",
+        r
+    )
+    bot.send_message(
+        f"free mod: {bool(info['free_mod'])}, "
+        f"global mods: {str(Mod(info['mods'])) if info['mods'] != Mod.NO_MOD else 'no mod'}",
+        r
+    )
+    bot.send_message("✱ ＳＬＯＴＳ ✱", r)
+    last_full_slot = next((len(info["slots"]) - i for i, x in enumerate(reversed(info["slots"])) if x['user'] is not None), 0)
+    if not info['slots']:
+        bot.send_message("nobody", r)
+    else:
+        for i, slot in enumerate(info["slots"]):
+            if i >= last_full_slot:
+                break
+            bot.send_message(
+                (
+                    f"[{i}] "
+                ) + (
+                    f"[{Team(slot.get('team', Team.NEUTRAL)).name.lower()}] "
+                    if info["team_type"] in (TeamType.TAG_TEAM_VS, TeamType.TEAM_VS)
+                    else
+                    ""
+                ) + (
+                    f"<{SlotStatus(slot['status']).name.capitalize().replace('_', ' ')}> "
+                    f"{'♛ ' if slot['user'] is not None and slot['user']['api_identifier'] == info['host_api_identifier'] else ''}"
+                    f"{slot['user']['username'] if slot['user'] is not None else '{empty}'}"
+                    f"{' +' if slot['mods'] != Mod.NO_MOD else ''}{str(Mod(slot['mods']))}"
+                ),
+                r
+            )
