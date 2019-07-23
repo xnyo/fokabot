@@ -10,7 +10,9 @@ import utils
 from plugins.base import Arg
 from constants.privileges import Privileges
 from singletons.bot import Bot
+from utils import general
 from utils.rippleapi import BanchoApiBeatmap
+from utils.schema import NonEmptyString
 
 bot = Bot()
 
@@ -196,7 +198,7 @@ async def invite(match_id: int, username: str) -> str:
 @plugins.base.arguments(
     Arg("username", Schema(str))
 )
-async def invite(match_id: int, username: str) -> str:
+async def kick(match_id: int, username: str) -> str:
     api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
     await bot.bancho_api_client.match_kick(match_id, api_identifier)
     return f"{username} has been kicked from this match"
@@ -209,6 +211,40 @@ async def invite(match_id: int, username: str) -> str:
 @plugins.base.arguments(
     Arg("beatmap_id", And(Use(int)))
 )
-async def invite(match_id: int, beatmap_id: int) -> str:
+async def map_(match_id: int, beatmap_id: int) -> str:
     await bot.bancho_api_client.edit_match(match_id, beatmap=BanchoApiBeatmap(beatmap_id))
     return "The beatmap has been updated"
+
+
+@bot.command("mp password")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("password", Schema(str), rest=True)
+)
+async def password(match_id: int, password: str) -> str:
+    await bot.bancho_api_client.edit_match(match_id, password=password)
+    return "The password has been changed."
+
+
+@bot.command("mp removepassword")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def remove_password(match_id: int) -> str:
+    await bot.bancho_api_client.edit_match(match_id, password="")
+    return "The password has been removed."
+
+
+@bot.command("mp randompassword")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def random_password(match_id: int, sender: Dict[str, Any]) -> str:
+    passwd = general.random_secure_string(8)
+    await bot.bancho_api_client.edit_match(match_id, password=passwd)
+    bot.send_message(f"New generated password for match #{match_id}: {passwd}", sender["username"])
+    return "A new password has been set."
