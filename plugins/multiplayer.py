@@ -8,6 +8,8 @@ from schema import Schema, Use, And
 import plugins.base
 import utils
 from constants.mods import Mod, ModSpecialMode
+from constants.scoring_types import ScoringType
+from constants.team_types import TeamType
 from constants.teams import Team
 from plugins.base import Arg
 from constants.privileges import Privileges
@@ -68,7 +70,7 @@ async def close(match_id: int) -> None:
     Arg("slots", And(Use(int), lambda x: 2 <= x <= 16, error="The slots number must be between 2 and 16 (inclusive)"))
 )
 async def size(match_id: int, slots: int) -> str:
-    await bot.bancho_api_client.lock(match_id, slots=[{"id": x, "locked": x > slots - 1} for x in range(16)])
+    await bot.bancho_api_client.resize_match(match_id, slots)
     return "Match size changed"
 
 
@@ -284,3 +286,25 @@ async def team(match_id: int, username: str, colour: Team) -> str:
     api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
     await bot.bancho_api_client.set_team(match_id, api_identifier, colour)
     return f"Teams updated."
+
+
+@bot.command("mp set")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("team_type", And(Use(int), Use(TeamType))),
+    Arg("scoring_type", And(Use(int), Use(ScoringType)), optional=True, default=None),
+    Arg("size_", Use(int), optional=True, default=None),
+)
+async def set_(
+    match_id: int, team_type: TeamType, scoring_type: Optional[ScoringType] = None, size_: Optional[int] = None
+) -> str:
+    if size_ is not None:
+        await bot.bancho_api_client.resize_match(match_id, size_)
+    await bot.bancho_api_client.edit_match(
+        match_id,
+        team_type=int(team_type),
+        scoring_type=int(scoring_type) if scoring_type is not None else scoring_type
+    )
+    return f"Match settings updated."

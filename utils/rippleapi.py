@@ -395,6 +395,9 @@ class BanchoApiClient(RippleApiBaseClient):
             "slots": slots
         }))
 
+    async def resize_match(self, match_id: int, size: int) -> None:
+        await self.lock(match_id, slots=[{"id": x, "locked": x > size - 1} for x in range(16)])
+
     async def match_move_user(self, match_id: int, api_identifier: str, slot_id: int) -> None:
         await self._request(
             f"multiplayer/{match_id}/move", "POST", {"api_identifier": api_identifier, "slot_id": slot_id}
