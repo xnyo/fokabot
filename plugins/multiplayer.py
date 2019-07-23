@@ -187,3 +187,16 @@ async def invite(match_id: int, username: str) -> str:
     user_id = await plugins.base.utils.username_to_user_id(username)
     await bot.bancho_api_client.invite(match_id, user_id)
     return f"{username} has been invited to this match"
+
+
+@bot.command("mp kick")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("username", Schema(str))
+)
+async def invite(match_id: int, username: str) -> str:
+    api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
+    await bot.bancho_api_client.match_kick(match_id, api_identifier)
+    return f"{username} has been kicked from this match"

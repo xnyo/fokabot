@@ -416,6 +416,11 @@ class BanchoApiClient(RippleApiBaseClient):
             "api_identifier": api_identifier
         }))
 
+    async def match_kick(self, match_id: int, api_identifier: str) -> None:
+        await self._request(f"multiplayer/{match_id}/kick", "POST", {
+            "api_identifier": api_identifier
+        })
+
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")
 
