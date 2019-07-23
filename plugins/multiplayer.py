@@ -335,3 +335,10 @@ async def score_v(match_id: int, v: int) -> str:
         scoring_type=ScoringType.SCORE if v == 1 else ScoringType.SCORE_V2
     )
     return f"Match scoring type set to score v{v}"
+
+
+@bot.command("mp help")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.base
+async def help_() -> str:
+    return f"Supported subcommands: !mp <{'|'.join(x[len('mp '):] for x in bot.get_commands_with_prefix('mp'))}>"
