@@ -18,7 +18,7 @@ Python with asyncio.
 - [x] /np support
 - [x] !last
 - [x] !bloodcat
-- [ ] !mp
+- [x] !mp
 - [ ] !switchserver (?)
 
 ### LICENSE
