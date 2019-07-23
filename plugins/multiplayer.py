@@ -200,3 +200,15 @@ async def invite(match_id: int, username: str) -> str:
     api_identifier = await plugins.base.utils.username_to_client_multiplayer(username, match_id)
     await bot.bancho_api_client.match_kick(match_id, api_identifier)
     return f"{username} has been kicked from this match"
+
+
+@bot.command("mp map")
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.arguments(
+    Arg("beatmap_id", And(Use(int)))
+)
+async def invite(match_id: int, beatmap_id: int) -> str:
+    await bot.bancho_api_client.edit_match(match_id, beatmap=BanchoApiBeatmap(beatmap_id))
+    return "The beatmap has been updated"

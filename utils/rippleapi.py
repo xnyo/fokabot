@@ -421,6 +421,11 @@ class BanchoApiClient(RippleApiBaseClient):
             "api_identifier": api_identifier
         })
 
+    async def edit_match(self, match_id: int, **kwargs) -> None:
+        if "beatmap" in kwargs:
+            kwargs["beatmap"] = kwargs["beatmap"].__dict__()
+        await self._request(f"multiplayer/{match_id}", "POST", self.remove_none(kwargs))
+
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")
 
