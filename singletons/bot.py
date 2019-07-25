@@ -12,7 +12,7 @@ except ImportError:
 
 import functools
 import logging
-from typing import Callable, Optional, Dict, Union, List, Tuple
+from typing import Callable, Optional, Dict, Union, List, Tuple, Type, Iterator, Generator, Iterable
 
 from aiohttp import web
 import aioredis
@@ -60,8 +60,8 @@ class Bot:
         self.wss = wss
         if not wss:
             self.logger.warning("WSS is disabled")
-        self.command_handlers: Dict[str, Callable] = {}
-        self.action_handlers: Dict[str, Callable] = {}
+        self.command_handlers: Dict[str, plugins.base.Command] = {}
+        self.action_handlers: Dict[str, plugins.base.Command] = {}
         self.command_prefix = commands_prefix
         self.reconnecting = False
         self.disposing = False
@@ -161,7 +161,8 @@ class Bot:
             self.logger.error(f"Error while closing ws connection ({e})")
 
     def command(
-        self, command_name: Union[str, List[str], Tuple[str]], action: bool = False, func: Optional[Callable] = None
+        self, command_name: Union[str, List[str], Tuple[str]],
+        action: bool = False, func: Optional[Callable] = None
     ) -> Callable:
         """
         Registers a new command (decorator)
@@ -179,25 +180,29 @@ class Bot:
         """
         if func is None:
             return functools.partial(self.command, command_name, action)  # type: ignore
-        import plugins
         wrapped = plugins.base.errors(func)
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
         if type(command_name) not in (list, tuple):
             command_name = (command_name,)
-        for c in command_name:
-            (self.action_handlers if action else self.command_handlers)[c.lower()] = wrapped
+        command_name = tuple(x.lower() for x in command_name)
+        dest = self.action_handlers if action else self.command_handlers
+        dest[command_name[0]] = plugins.base.CommandWrapper(command_name[0], wrapped, aliases=command_name[1:])
+        for alias in command_name[1:]:
+            dest[alias] = plugins.base.CommandAlias(alias, wrapped, root_name=command_name[0])
         # Always return original
         return functools.partial(func, command_name=command_name)
 
-    def get_commands_with_prefix(self, prefix: str) -> List[str]:
+    def get_commands_with_prefix(self, prefix: str) -> Iterator[Tuple[str, plugins.base.Command]]:
         """
         Returns a list with all commands that start with a specific prefix.
 
         :param prefix: the prefix, not including the bot prefix. eg: 'mp'
         :return: a list of all commands that start with that prefix
         """
-        return [k for k in self.command_handlers.keys() if k.startswith(prefix)]
+        for k, v in self.command_handlers.items():
+            if k.startswith(prefix):
+                yield k, v
 
     def reset(self) -> None:
         """

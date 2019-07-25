@@ -56,9 +56,9 @@ async def join(sender: Dict[str, Any], match_id: int) -> str:
 
 
 @bot.command("mp close")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def close(match_id: int, sender: Dict[str, Any]) -> None:
     await bot.bancho_api_client.delete_match(match_id)
@@ -66,9 +66,9 @@ async def close(match_id: int, sender: Dict[str, Any]) -> None:
 
 
 @bot.command("mp size")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("slots", And(Use(int), lambda x: 2 <= x <= 16, error="The slots number must be between 2 and 16 (inclusive)"))
 )
@@ -78,9 +78,9 @@ async def size_(match_id: int, slots: int) -> str:
 
 
 @bot.command("mp move")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("username", Schema(str)),
     Arg("slot", And(Use(int), lambda x: 0 <= x < 16, error="The slots index must be between 0 and 16 (inclusive)"))
@@ -92,9 +92,9 @@ async def move(username: str, slot: int, match_id: int) -> str:
 
 
 @bot.command("mp host")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("username", Schema(str))
 )
@@ -115,9 +115,9 @@ async def clear_host(match_id: int) -> str:
 
 
 @bot.command("mp start")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("seconds", And(Use(int), lambda x: x >= 0), default=0, optional=True),
     Arg("force", And(str, Use(lambda x: x == "force")), default=False, optional=True)
@@ -162,9 +162,9 @@ async def start(match_id: int, seconds: int, recipient: Dict[str, Any], force: b
 
 
 @bot.command("mp abort")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def abort(match_id: int) -> str:
     had_timer = True
@@ -185,9 +185,9 @@ async def abort(match_id: int) -> str:
 
 
 @bot.command("mp invite")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("username", Schema(str))
 )
@@ -198,9 +198,9 @@ async def invite(match_id: int, username: str) -> str:
 
 
 @bot.command("mp kick")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("username", Schema(str))
 )
@@ -211,9 +211,9 @@ async def kick(match_id: int, username: str) -> str:
 
 
 @bot.command("mp map")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("beatmap_id", And(Use(int))),
     Arg(
@@ -234,9 +234,9 @@ async def map_(match_id: int, beatmap_id: int, game_mode: Optional[GameMode] = N
 
 
 @bot.command("mp password")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("password", Schema(str), rest=True)
 )
@@ -246,9 +246,9 @@ async def password(match_id: int, password: str) -> str:
 
 
 @bot.command("mp removepassword")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def remove_password(match_id: int) -> str:
     await bot.bancho_api_client.edit_match(match_id, password="")
@@ -256,9 +256,9 @@ async def remove_password(match_id: int) -> str:
 
 
 @bot.command("mp randompassword")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def random_password(match_id: int, sender: Dict[str, Any]) -> str:
     passwd = general.random_secure_string(8)
@@ -268,9 +268,9 @@ async def random_password(match_id: int, sender: Dict[str, Any]) -> str:
 
 
 @bot.command("mp mods")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg(
         "mods",
@@ -289,9 +289,9 @@ async def mods_(match_id: int, mods: Tuple[ModSpecialMode, Mod]) -> str:
 
 
 @bot.command("mp team")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("username", Schema(str)),
     Arg("colour", And(Use(lambda x: Team[x.strip().upper()]), lambda x: x != Team.NEUTRAL), example="red/blue")
@@ -304,9 +304,9 @@ async def team(match_id: int, username: str, colour: Team) -> str:
 
 
 @bot.command("mp set")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg(
         "team_type",
@@ -337,9 +337,9 @@ async def set_(
 
 
 @bot.command("mp scorev")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.arguments(
     Arg("v", And(Use(int), lambda x: x in (1, 2)), example="1/2")
 )
@@ -352,16 +352,19 @@ async def score_v(match_id: int, v: int) -> str:
 
 
 @bot.command("mp help")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.base
 async def help_() -> str:
-    return f"Supported subcommands: !mp <{'|'.join(x[len('mp '):] for x in bot.get_commands_with_prefix('mp'))}>"
+    l = '|'.join(
+        k[len("mp "):] + (f" (alias of {v.root_name})" if issubclass(type(v), plugins.base.CommandAlias) else "")
+        for k, v in bot.get_commands_with_prefix('mp')
+    )
+    return f"Supported subcommands: !mp <{l}>"
 
 
 @bot.command("mp info")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def info(match_id: int) -> None:
     info = await bot.bancho_api_client.get_match_info(match_id)
@@ -412,9 +415,9 @@ async def info(match_id: int) -> None:
 
 
 @bot.command(("mp lock", "mp freeze"))
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def lock(match_id: int) -> str:
     await bot.bancho_api_client.freeze(match_id, True)
@@ -422,9 +425,9 @@ async def lock(match_id: int) -> str:
 
 
 @bot.command(("mp unlock", "mp unfreeze"))
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.multiplayer_only
 @resolve_mp
+@plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def unlock(match_id: int) -> str:
     await bot.bancho_api_client.freeze(match_id, False)

@@ -1,12 +1,43 @@
 from itertools import zip_longest
-from typing import Optional, Any, Callable, List, Dict
+from typing import Optional, Any, Callable, List, Dict, Iterable, NamedTuple, TypeVar
 
+from abc import ABC
 from schema import Or, SchemaError
 
 from constants.privileges import Privileges
 from plugins.base import utils
 from plugins.base import filters
 from utils.rippleapi import RippleApiResponseError, RippleApiError
+
+
+class Command(ABC):
+    def __init__(self, name: str, handler: Callable):
+        self.handler = handler
+        self.name = name
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.handler}"
+
+
+class CommandWrapper(Command):
+    def __init__(self, *args, aliases: Optional[Iterable[str]] = None, **kwargs):
+        super(CommandWrapper, self).__init__(*args, **kwargs)
+        if aliases is None:
+            aliases = []
+        self.aliases = aliases
+
+    def __str__(self) -> str:
+        return f"Command: {super(CommandWrapper, self).__str__()}"
+
+
+class CommandAlias(Command):
+    def __init__(self, *args, root_name: str, **kwargs):
+        super(CommandAlias, self).__init__(*args, **kwargs)
+        self.root_name = root_name
+
+    def __str__(self):
+        return f"Alias: {super(CommandAlias, self).__str__()}"
+
 
 
 class GenericBotError(Exception):
@@ -119,6 +150,33 @@ def protected(required_privileges: Privileges) -> Callable:
             return await f(sender=sender, **kwargs)
         return wrapper
     return decorator
+
+def tournament_staff_or_host(f: Callable) -> Callable:
+    """
+    Allows this command only if the sender is the host of this match or if the sender
+    has the Privileges.USER_TOURNAMENT_STAFF privilege or if the sender is the api
+    owner of the match.
+
+    You MUST use this decorator after
+    @plugins.base.multiplayer_only
+    @resolve_mp
+
+    :param f:
+    :return:
+    """
+    import singletons.bot
+
+    async def wrapper(*, sender: Dict[str, Any], match_id: int, **kwargs) -> Any:
+        # TODO: Walrus
+        can = Privileges(sender["privileges"]).has(Privileges.USER_TOURNAMENT_STAFF)
+        if not can:
+            match_info = await singletons.bot.Bot().bancho_api_client.get_match_info(match_id)
+            can = match_info["host_api_identifier"] == sender["api_identifier"] \
+                  or match_info["api_owner_user_id"] == sender["user_id"]
+        if not can:
+            return "You must be the host of the match to trigger this command."
+        return await f(sender=sender, match_id=match_id, **kwargs)
+    return wrapper
 
 
 def _trigger_filter(*filters_: Callable[..., bool], checker: Callable[..., bool] = None) -> Callable:

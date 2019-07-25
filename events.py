@@ -87,7 +87,7 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
         if raw_message.startswith(k):
             bot.logger.debug(f"Triggered {v} ({k}) [{'command' if is_command else 'action'}]")
             command_name_length = len(k.split(" "))
-            result = await v(
+            result = await v.handler(
                 sender=sender, recipient=recipient, pm=pm, message=message,
                 parts=message.split(" ")[command_name_length:], command_name=k
             )
