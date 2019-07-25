@@ -396,6 +396,8 @@ class BanchoApiClient(RippleApiBaseClient):
         }))
 
     async def resize_match(self, match_id: int, size: int) -> None:
+        if not 0 < size <= 16:
+            raise ValueError("The size must be between 0 and 16")
         await self.lock(match_id, slots=[{"id": x, "locked": x > size - 1} for x in range(16)])
 
     async def match_move_user(self, match_id: int, api_identifier: str, slot_id: int) -> None:
