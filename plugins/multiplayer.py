@@ -215,10 +215,21 @@ async def kick(match_id: int, username: str) -> str:
 @plugins.base.multiplayer_only
 @resolve_mp
 @plugins.base.arguments(
-    Arg("beatmap_id", And(Use(int)))
+    Arg("beatmap_id", And(Use(int))),
+    Arg(
+        "game_mode",
+        And(Use(int), Use(GameMode)),
+        optional=True,
+        default=None,
+        example="0=std, 1=taiko, 2=ctb, 3=mania"
+    )
 )
-async def map_(match_id: int, beatmap_id: int) -> str:
-    await bot.bancho_api_client.edit_match(match_id, beatmap=BanchoApiBeatmap(beatmap_id))
+async def map_(match_id: int, beatmap_id: int, game_mode: Optional[GameMode] = None) -> str:
+    await bot.bancho_api_client.edit_match(
+        match_id,
+        beatmap=BanchoApiBeatmap(beatmap_id),
+        game_mode=game_mode
+    )
     return "The beatmap has been updated"
 
 
