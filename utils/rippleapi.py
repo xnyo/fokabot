@@ -469,6 +469,9 @@ class RippleApiClient(RippleApiBaseClient):
         })
         return response.get("id", None)
 
+    async def ping(self) -> Dict[str, Any]:
+        return await self._request("ping")
+
     async def get_user(
         self, username: Optional[str] = None, user_id: Optional[int] = None
     ) -> Optional[List[Dict[str, Any]]]:

@@ -1,5 +1,6 @@
 import asyncio
 import signal
+import sys
 
 import plugins.base
 from ws.client import WsClient
@@ -24,6 +25,7 @@ from utils.letsapi import LetsApiClient
 from utils.np_storage import NpStorage
 from utils.periodic_tasks import periodic_task
 from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
+from constants.api_privileges import APIPrivileges
 
 
 @singleton.singleton
@@ -106,6 +108,13 @@ class Bot:
         :return:
         """
         import internal_api.handlers
+
+        try:
+            asyncio.get_event_loop().run_until_complete(self._check_api_keys())
+        except RuntimeError as e:
+            logging.error(e)
+            sys.exit(-1)
+
         self.web_app.add_routes([
             web.post("/api/v0/send_message", internal_api.handlers.send_message)
         ])
@@ -249,3 +258,21 @@ class Bot:
         except ConnectionError as e:
             self.logger.error(f"{e}. Now disposing.")
             self.loop.stop()
+
+    async def _check_api_keys(self) -> None:
+        for name, client, expected in (
+            ("Ripple", self.ripple_api_client, APIPrivileges.all_privileges() & ~APIPrivileges.BANCHO),
+            ("Delta", RippleApiClient(
+                self.bancho_api_client.token,
+                self.ripple_api_client.base
+            ), APIPrivileges.all_privileges())
+        ):
+            self.logger.info(f"Checking {name} API key")
+            r = await client.ping()
+            actual = APIPrivileges(r.get("privileges", APIPrivileges.NONE))
+            self.logger.debug(f"{name} api key privileges: {actual}, expected {expected}")
+            if not actual.has(expected):
+                raise RuntimeError(
+                    f"The provided {name} API key doesn't have the required privileges. "
+                    f"Expected {expected}, got {actual}."
+                )
