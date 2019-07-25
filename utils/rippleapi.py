@@ -439,6 +439,11 @@ class BanchoApiClient(RippleApiBaseClient):
             "team": int(team)
         })
 
+    async def freeze(self, match_id: int, enable: bool) -> None:
+        await self._request(f"multiplayer/{match_id}/freeze", "POST", {
+            "freeze": enable
+        })
+
     async def get_all_channels(self) -> List[Dict[str, Any]]:
         return (await self._request("chat_channels")).get("channels")
 

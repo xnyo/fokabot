@@ -409,3 +409,23 @@ async def info(match_id: int) -> None:
                 ),
                 r
             )
+
+
+@bot.command(("mp lock", "mp freeze"))
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def lock(match_id: int) -> str:
+    await bot.bancho_api_client.freeze(match_id, True)
+    return f"The match has been frozen. Players can't change slots or teams."
+
+
+@bot.command(("mp unlock", "mp unfreeze"))
+@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
+@plugins.base.multiplayer_only
+@resolve_mp
+@plugins.base.base
+async def unlock(match_id: int) -> str:
+    await bot.bancho_api_client.freeze(match_id, False)
+    return f"The match has been unfrozen. Players can now change slots and teams."
