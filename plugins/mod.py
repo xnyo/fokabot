@@ -24,7 +24,7 @@ async def moderated(recipient: Dict[str, Any], on: int) -> str:
 
 
 @bot.command("kick")
-@plugins.base.protected(Privileges.ADMIN_CHAT_MOD)
+@plugins.base.protected(Privileges.ADMIN_KICK_USERS)
 @plugins.base.arguments(plugins.base.Arg("username", And(str)))
 async def kick(username: str) -> str:
     api_identifier = await plugins.base.utils.username_to_client(username)
