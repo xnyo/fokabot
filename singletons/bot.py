@@ -116,7 +116,6 @@ class Bot:
         for hook in self.init_hooks:
             self.logger.info(f"Running init hook for plugin {hook.plugin}")
             await hook.func() if inspect.iscoroutinefunction(hook.func) else hook.func()
-        self.init_hooks.clear()
 
     def run(self) -> None:
         """
