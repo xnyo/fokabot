@@ -9,6 +9,7 @@ import plugins.base.filters
 from constants.action import Action
 from singletons.bot import Bot
 from utils.rippleapi import BanchoClientType
+import utils.beatmaps
 
 bot = Bot()
 
@@ -37,14 +38,14 @@ async def help_() -> str:
     return "Click (here)[https://ripple.moe/index.php?p=16&id=4] for FokaBot's full command list"
 
 
-@bot.command("bloodcat")
+@bot.command(("bloodcat", "beatconnect", "mirror"))
 @plugins.base.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
 @plugins.base.base
 async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
     """
-    !bloodcat
+    !bloodcat / !beatconnect / !mirror
 
-    :return: a link to download the currently played beatmap from bloodcat.
+    :return: a link to download the currently played beatmap from beatconnect and bloodcat.
              Works only in #multiplayer and #spectator
     """
     is_multi = recipient["display_name"] == "#multiplayer"
@@ -73,9 +74,7 @@ async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
         beatmap_id = client["action"]["beatmap"]["id"]
         beatmap_name = client["action"]["text"]
     assert beatmap_id is not None
-    cheesegull_response = await bot.cheesegull_api_client.get_beatmap(beatmap_id)
-    if cheesegull_response is None:
+    beatmap_set_id = await utils.beatmaps.get_beatmap_set_id(beatmap_id)
+    if beatmap_set_id:
         return "Sorry, I don't know this beatmap :/"
-    return \
-        f"Download [https://bloodcat.com/osu/s/{cheesegull_response['ParentSetID']} " \
-        f"{beatmap_name}] from Bloodcat"
+    return await utils.beatmaps.get_download_message(beatmap_set_id, beatmap_name)
