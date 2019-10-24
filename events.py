@@ -10,6 +10,7 @@ from ws.messages import WsSubscribe, WsAuth, WsJoinChatChannel, WsPong, WsChatMe
 
 bot = Bot()
 
+
 @bot.client.on("connected")
 async def connected():
     bot.logger.debug("Ws client started, now logging in")
@@ -32,6 +33,7 @@ async def connected():
         for channel in channels:
             bot.logger.debug(f"Joining {channel['name']}")
             bot.client.send(WsJoinChatChannel(channel["name"]))
+        await bot.run_init_hooks()
 
 
 @bot.client.on("msg:chat_channel_joined")

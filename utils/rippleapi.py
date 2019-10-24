@@ -80,7 +80,7 @@ class RippleApiBaseClient(ABC):
 
     def __init__(
         self, token: Optional[str] = None, base: str = "https://ripple.moe",
-        user_agent: str = "fokabot", timeout: int = 5
+        user_agent: str = "fokabot", timeout: int = 5, check_status: bool = True
     ):
         """
         Initializes a new BanchoAPiClient
@@ -97,6 +97,7 @@ class RippleApiBaseClient(ABC):
         self.user_id = 0
         self.privileges = 0
         self.user_privileges = 0
+        self._check_status = check_status
         # self._session: aiohttp.ClientSession = None
 
     @property
@@ -202,7 +203,7 @@ class RippleApiBaseClient(ABC):
                     raise RippleApiFatalError(e)
 
                 # Make sure the response was valid
-                if response.status != 200:
+                if self._check_status and response.status != 200:
                     raise RippleApiResponseError.factory(result)
 
                 return result
@@ -379,6 +380,9 @@ class BanchoApiClient(RippleApiBaseClient):
             "password": password
         }))
 
+    async def get_all_matches(self) -> Dict[Any, Any]:
+        return (await self._request("multiplayer")).get("matches")
+
     async def get_match_info(self, match_id: int) -> Dict[str, Any]:
         return await self._request(f"multiplayer/{match_id}")
 
@@ -553,11 +557,16 @@ class RippleApiClient(RippleApiBaseClient):
 
 class CheesegullApiClient(RippleApiBaseClient):
     def __init__(self, base: str = "https://storage.ripple.moe", user_agent: str = "fokabot", timeout: int = 5):
-        super(CheesegullApiClient, self).__init__(token=None, base=base, user_agent=user_agent, timeout=timeout)
+        super(CheesegullApiClient, self).__init__(
+            token=None, base=base, user_agent=user_agent, timeout=timeout, check_status=False
+        )
 
     @property
     def api_link(self) -> str:
-        return f"{self.base.rstrip('/')}/"
+        return f"{self.base.rstrip('/')}/api"
 
-    async def get_beatmap(self, beatmap_id):
+    async def get_beatmap(self, beatmap_id: int) -> Dict[str, Any]:
         return await self._request(f"b/{beatmap_id}")
+
+    async def get_set(self, beatmap_set_id: int) -> Dict[str, Any]:
+        return await self._request(f"s/{beatmap_set_id}")

@@ -16,12 +16,19 @@ class Config:
 
             "BOT_NICKNAME": config("BOT_NICKNAME", default="FokaBot"),
 
-            "BOT_PLUGINS": config("BOT_PLUGINS", default="general,faq,alert,mod,system,pp,multiplayer", cast=Csv(str)),
+            "BOT_PLUGINS": config(
+                "BOT_PLUGINS",
+                default="general,faq,alert,mod,system,pp,multiplayer,beatmaps",
+                cast=Csv(str)
+            ),
 
             "COMMANDS_PREFIX": config("COMMANDS_PREFIX", default="!"),
 
             "RIPPLE_API_BASE": config("RIPPLE_API_BASE", default="https://ripple.moe"),
             "RIPPLE_API_TOKEN": token,
+
+            "OSU_API_TOKEN": config("OSU_API_TOKEN"),
+            "BEATCONNECT_API_TOKEN": config("BEATCONNECT_API_TOKEN"),
 
             "BANCHO_API_BASE": config("BANCHO_API_BASE", default="https://c.ripple.moe"),
             "BANCHO_API_TOKEN": config("BANCHO_API_TOKEN", default=token),

@@ -1,8 +1,11 @@
 import asyncio
+import inspect
 import signal
 import sys
 
 import plugins.base
+from utils.init_hook import InitHook
+from utils.osuapi import OsuAPIClient
 from ws.client import WsClient
 from ws.messages import WsChatMessage
 
@@ -39,6 +42,7 @@ class Bot:
         ripple_api_client: RippleApiClient = None,
         cheesegull_api_client: CheesegullApiClient = None,
         lets_api_client: LetsApiClient = None,
+        osu_api_client: OsuAPIClient = None,
         http_host: str = None, http_port: int = None,
         redis_host: str = "127.0.0.1", redis_port: int = 6379,
         redis_database: int = 0, redis_password: Optional[str] = None,
@@ -51,6 +55,7 @@ class Bot:
         self.bancho_api_client = bancho_api_client
         self.ripple_api_client = ripple_api_client
         self.cheesegull_api_client = cheesegull_api_client
+        self.osu_api_client = osu_api_client
         self.lets_api_client = lets_api_client
         self.web_app: web.Application = web.Application()
         # self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
@@ -85,6 +90,7 @@ class Bot:
 
         self.login_channels_left = set()
         self.match_delayed_start_tasks: Dict[int, asyncio.Task] = {}
+        self.init_hooks: List[InitHook] = []
 
     def send_message(self, message: str, recipient: str) -> None:
         """
@@ -99,6 +105,18 @@ class Bot:
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
         return asyncio.get_event_loop()
+
+    async def run_init_hooks(self) -> None:
+        """
+        Runs all registered init hooks.
+
+        :return:
+        """
+        self.logger.info("Running init hooks")
+        for hook in self.init_hooks:
+            self.logger.info(f"Running init hook for plugin {hook.plugin}")
+            await hook.func() if inspect.iscoroutinefunction(hook.func) else hook.func()
+        self.init_hooks.clear()
 
     def run(self) -> None:
         """

@@ -1,4 +1,4 @@
-from typing import Dict, Any, TypeVar
+from typing import Dict, Any, TypeVar, Optional
 
 from constants.events import WsEvent
 
@@ -29,15 +29,19 @@ class WsMessage:
             "type": self.type_,
             "data": self.data
         }
-    
+
+
 class WsAuth(WsMessage):
     def __init__(self, token: str):
         super(WsAuth, self).__init__("auth", {"token": token})
 
 
 class WsSubscribe(WsMessage):
-    def __init__(self, event: WsEvent):
-        super(WsSubscribe, self).__init__("subscribe", {"event": event.value})
+    def __init__(self, event: WsEvent, data: Optional[Dict[str, Any]] = None):
+        o = {"event": event.value}
+        if data is not None:
+            o['data'] = data
+        super(WsSubscribe, self).__init__("subscribe", o)
 
 
 class WsJoinChatChannel(WsMessage):
@@ -53,3 +57,13 @@ class WsPong(WsMessage):
 class WsChatMessage(WsMessage):
     def __init__(self, message: str, recipient: str):
         super(WsChatMessage, self).__init__("chat_message", {"message": message, "target": recipient})
+
+
+class WsSubscribeMatch(WsSubscribe):
+    def __init__(self, match_id: int):
+        super(WsSubscribeMatch, self).__init__(WsEvent.MULTIPLAYER, {"match_id": match_id})
+
+
+class WsUnsubscribeMatch(WsSubscribe):
+    def __init__(self, match_id: int):
+        super(WsUnsubscribeMatch, self).__init__(WsEvent.MULTIPLAYER, {"match_id": match_id})

@@ -1,6 +1,9 @@
 import importlib
 import logging
 
+from utils.init_hook import InitHook
+from utils.osuapi import OsuAPIClient
+
 try:
     import uvloop
     use_uvloop = True
@@ -51,6 +54,9 @@ def main() -> None:
         cheesegull_api_client=CheesegullApiClient(
             Config()["CHEESEGULL_API_BASE"]
         ),
+        osu_api_client=OsuAPIClient(
+            Config()["OSU_API_TOKEN"]
+        ),
         http_host=Config()["HTTP_HOST"],
         http_port=Config()["HTTP_PORT"],
         redis_host=Config()["REDIS_HOST"],
@@ -64,11 +70,15 @@ def main() -> None:
 
     # Import all required plugins (register bot commands)
     for plugin in Config()["BOT_PLUGINS"]:
-        importlib.import_module(f"plugins.{plugin}")
+        imported_plugin = importlib.import_module(f"plugins.{plugin}")
+        if hasattr(imported_plugin, "init"):
+            logging.debug(f"Plugin {plugin} has init hook.")
+            Bot().init_hooks.append(InitHook(plugin, getattr(imported_plugin, "init")))
         Bot().logger.info(f"Loaded plugin plugins.{plugin}")
 
     # Finally, run the bot
     Bot().run()
+
 
 if __name__ == '__main__':
     main()
