@@ -1,6 +1,7 @@
 import importlib
 import logging
 
+from utils.beatconnect_api import BeatconnectAPIClient
 from utils.init_hook import InitHook
 from utils.osuapi import OsuAPIClient
 
@@ -56,6 +57,9 @@ def main() -> None:
         ),
         osu_api_client=OsuAPIClient(
             Config()["OSU_API_TOKEN"]
+        ),
+        beatconnect_api_client=BeatconnectAPIClient(
+            Config()["BEATCONNECT_API_TOKEN"]
         ),
         http_host=Config()["HTTP_HOST"],
         http_port=Config()["HTTP_PORT"],
