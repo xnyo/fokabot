@@ -4,7 +4,11 @@ from typing import Optional, Dict, Any
 import aiohttp
 
 
-class OsuAPIFatalError(Exception):
+class OsuAPIError(Exception):
+    pass
+
+
+class OsuAPIFatalError(OsuAPIError):
     pass
 
 
@@ -30,7 +34,7 @@ class OsuAPIClient:
                 async with session.get(url, params=params) as response:
                     if response.status != 200:
                         text = await response.text()
-                        raise OsuAPIFatalError(f"Bad response ({response.status}): {text}")
+                        raise OsuAPIError(f"Bad response ({response.status}): {text}")
                     return await response.json()
             except (aiohttp.ServerConnectionError, aiohttp.ClientError, ValueError) as e:
                 raise OsuAPIFatalError(e)

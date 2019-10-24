@@ -1,7 +1,6 @@
 from constants.events import WsEvent
-from constants.ranked_statuses import RankedStatus
 from singletons.bot import Bot
-from utils.osuapi import OsuAPIFatalError
+import utils.beatmaps
 from ws.messages import WsSubscribe, WsSubscribeMatch
 
 bot = Bot()
@@ -38,10 +37,6 @@ class CheesegullFaError(Exception):
     pass
 
 
-class CheesegullLookupError(Exception):
-    pass
-
-
 @bot.client.on("msg:match_update")
 async def match_updated(**data):
     bot.logger.debug(f"Got match update for match {data['id']}")
@@ -53,34 +48,11 @@ async def match_updated(**data):
     beatmap_changed = beatmaps.get(data["id"], 0) != data["beatmap"]["id"]
     beatmaps[data["id"]] = data["beatmap"]["id"]
     if beatmap_changed and data["beatmap"]["id"] > 0:
-        beatmap_set_id = 0
         bot.logger.debug(f"Beatmap changed in match #{data['id']} ({data['beatmap']['id']})")
-        try:
-            beatmap_response = await bot.cheesegull_api_client.get_beatmap(data["beatmap"]["id"])
-            if beatmap_response is None:
-                # Unknown beatmap
-                raise CheesegullLookupError()
-            set_response = await bot.cheesegull_api_client.get_set(beatmap_response["ParentSetID"])
-            if set_response is None:
-                # Unknown set ?
-                raise CheesegullLookupError()
-            if set_response["RankedStatus"] < RankedStatus.RANKED:
-                # Cheesegull does not provide this beatmap, it must be downloaded through another mirror
-                beatmap_set_id = beatmap_response["ParentSetID"]
-        except CheesegullLookupError:
-            try:
-                response = await bot.osu_api_client.request("get_beatmaps", {"b": data['beatmap']['id'], "limit": 1})
-                if not response:
-                    # Unknown beatmap
-                    return
-                response = response[0]
-                try:
-                    beatmap_set_id = int(response["beatmapset_id"])
-                except ValueError:
-                    raise OsuAPIFatalError(f"Invalid beatmap set id ({response['beatmapset_id']})")
-            except OsuAPIFatalError as e:
-                # TODO: Sentry
-                bot.logger.error(f"osu!api error ({e}). Failing silently.")
+        beatmap_set_id = await utils.beatmaps.get_beatmap_set_id(data["beatmap"]["id"], non_cheesegull_only=True)
+        if beatmap_set_id is None:
+            bot.logger.warning("Couldn't get beatmap set id. Failing silently.")
+            return
         if beatmap_set_id > 0:
             bloodcat_link = f"https://bloodcat.com/osu/s/{beatmap_set_id}"
             main_link = bloodcat_link
