@@ -35,10 +35,12 @@ async def get_beatmap_set_id(beatmap_id: int, non_cheesegull_only: bool = True) 
         if not non_cheesegull_only or set_response["RankedStatus"] < RankedStatus.RANKED:
             return beatmap_response["ParentSetID"]
     except CheesegullLookupError:
+        bot.logger.warning("Cheesegull lookup error. Trying to use osu! api.")
         try:
             response = await bot.osu_api_client.request("get_beatmaps", {"b": beatmap_id, "limit": 1})
             if not response:
                 # Unknown beatmap
+                bot.logger.warning("osu! api lookup error. Unknown beatmap.")
                 return
             response = response[0]
             try:

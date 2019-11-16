@@ -38,7 +38,7 @@ async def help_() -> str:
     return "Click (here)[https://ripple.moe/index.php?p=16&id=4] for FokaBot's full command list"
 
 
-@bot.command(("bloodcat", "beatconnect", "mirror"))
+@bot.command(("bloodcat", "beatconnect", "mirror", "b"))
 @plugins.base.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
 @plugins.base.base
 async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
@@ -74,7 +74,7 @@ async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
         beatmap_id = client["action"]["beatmap"]["id"]
         beatmap_name = client["action"]["text"]
     assert beatmap_id is not None
-    beatmap_set_id = await utils.beatmaps.get_beatmap_set_id(beatmap_id)
-    if beatmap_set_id:
+    beatmap_set_id = await utils.beatmaps.get_beatmap_set_id(beatmap_id, non_cheesegull_only=False)
+    if beatmap_set_id is None:
         return "Sorry, I don't know this beatmap :/"
     return await utils.beatmaps.get_download_message(beatmap_set_id, beatmap_name)
