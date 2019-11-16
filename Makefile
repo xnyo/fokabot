@@ -6,7 +6,7 @@ push-normal: normal
 	docker push d.nyodev.xyz/ripple/fokabot:$(VERSION)
 
 push-alpine: alpine
-	docker push d.nyodev.xyz/ripple/fokabot:$(VERSION)
+	docker push d.nyodev.xyz/ripple/fokabot:$(VERSION)-alpine
 
 alpine:
 	docker build -t d.nyodev.xyz/ripple/fokabot:$(VERSION)-alpine -f Dockerfile.alpine .
