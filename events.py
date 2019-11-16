@@ -39,6 +39,7 @@ async def connected():
 @bot.client.on("msg:chat_channel_joined")
 async def chat_channel_joined(name: str, **kwargs):
     bot.logger.info(f"Joined {name}")
+    bot.joined_channels.add(name.lower())
     if not bot.ready:
         bot.login_channels_left.remove(name.lower())
         if not bot.login_channels_left:
@@ -56,11 +57,19 @@ async def chat_channel_added(name: str, **kwargs):
 @bot.client.on("msg:chat_channel_removed")
 async def chat_channel_removed(name: str, **kwargs):
     bot.logger.debug(f"Channel {name} removed")
+    try:
+        bot.joined_channels.remove(name)
+    except KeyError:
+        pass
 
 
 @bot.client.on("msg:chat_channel_left")
-async def chat_channel_removed(name: str, **kwargs):
+async def chat_channel_left(name: str, **kwargs):
     bot.logger.info(f"Left {name}")
+    try:
+        bot.joined_channels.remove(name)
+    except KeyError:
+        pass
 
 
 @bot.client.on("msg:ping")

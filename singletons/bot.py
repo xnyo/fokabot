@@ -17,7 +17,7 @@ except ImportError:
 
 import functools
 import logging
-from typing import Callable, Optional, Dict, Union, List, Tuple, Type, Iterator, Generator, Iterable
+from typing import Callable, Optional, Dict, Union, List, Tuple, Type, Iterator, Generator, Iterable, Set
 
 from aiohttp import web
 import aioredis
@@ -94,7 +94,8 @@ class Bot:
         self._pubsub_task: Optional[asyncio.Task] = None
         self.pubsub_binding_manager: PubSubBindingManager = PubSubBindingManager()
 
-        self.login_channels_left = set()
+        self.login_channels_left: Set[str] = set()
+        self.joined_channels: Set[str] = set()
         self.match_delayed_start_tasks: Dict[int, asyncio.Task] = {}
         self.init_hooks: List[InitHook] = []
 
@@ -245,6 +246,7 @@ class Bot:
         """
         self.ready = False
         self.login_channels_left.clear()
+        self.joined_channels.clear()
 
     async def _initialize_pubsub(self) -> None:
         import pubsub.handlers.message
