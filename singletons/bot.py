@@ -156,7 +156,13 @@ class Bot:
         )
 
         asyncio.get_event_loop().run_until_complete(self._initialize_ws())
-        signal.signal(signal.SIGINT, lambda s, f: self.loop.stop())
+
+        def term():
+            self.loop.stop()
+
+        self.loop.add_signal_handler(signal.SIGINT, term)
+        self.loop.add_signal_handler(signal.SIGTERM, term)
+
         try:
             self.loop.run_forever()
         finally:
