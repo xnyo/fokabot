@@ -67,7 +67,8 @@ def main() -> None:
         redis_port=Config()["REDIS_PORT"],
         redis_database=Config()["REDIS_DATABASE"],
         redis_password=Config()["REDIS_PASSWORD"],
-        redis_pool_size=Config()["REDIS_POOL_SIZE"]
+        redis_pool_size=Config()["REDIS_POOL_SIZE"],
+        tinydb_path=Config()["TINYDB_PATH"],
     )
     # Register all events
     import events

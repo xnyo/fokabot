@@ -34,7 +34,7 @@ from constants.api_privileges import APIPrivileges
 
 @singleton.singleton
 class Bot:
-    VERSION: str = "2.2.1"
+    VERSION: str = "2.2.2"
 
     def __init__(
         self, *, nickname: str = "FokaBot", wss: bool = True,
@@ -48,7 +48,7 @@ class Bot:
         http_host: str = None, http_port: int = None,
         redis_host: str = "127.0.0.1", redis_port: int = 6379,
         redis_database: int = 0, redis_password: Optional[str] = None,
-        redis_pool_size: int = 8,
+        redis_pool_size: int = 8, tinydb_path: str = None,
     ):
         self.ready = False
         self.nickname = nickname
@@ -93,6 +93,8 @@ class Bot:
         self.redis_pool_size = redis_pool_size
         self._pubsub_task: Optional[asyncio.Task] = None
         self.pubsub_binding_manager: PubSubBindingManager = PubSubBindingManager()
+
+        self.tinydb_path = tinydb_path
 
         self.login_channels_left: Set[str] = set()
         self.joined_channels: Set[str] = set()
