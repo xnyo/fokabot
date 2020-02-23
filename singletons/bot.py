@@ -34,7 +34,7 @@ from constants.api_privileges import APIPrivileges
 
 @singleton.singleton
 class Bot:
-    VERSION: str = "2.2.1"
+    VERSION: str = "2.3.0"
 
     def __init__(
         self, *, nickname: str = "FokaBot", wss: bool = True,
