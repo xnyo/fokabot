@@ -28,6 +28,7 @@ class LetsPPResponse:
         self.bpm: int = kwargs["bpm"]
         self.mods: Mod = kwargs["mods"]
         self.accuracy: Optional[float] = kwargs["accuracy"]
+        self.game_mode: GameMode = GameMode(kwargs["game_mode"])
 
     @property
     def has_multiple_pp(self) -> bool:
@@ -55,9 +56,9 @@ class LetsPPResponse:
     def pp_95(self) -> float:
         return self._pp[3] if self.has_multiple_pp else None
 
-    @property
-    def primary_game_mode(self) -> GameMode:
-        return next((GameMode(i) for v, i in enumerate(self._pp) if v is not None and v > 0), GameMode.STANDARD)
+    # @property
+    # def primary_game_mode(self) -> GameMode:
+    #    return next((GameMode(i) for v, i in enumerate(self._pp) if v is not None and v > 0), GameMode.STANDARD)
 
     @property
     def modded_ar(self) -> float:
@@ -69,6 +70,7 @@ class LetsPPResponse:
 
     def __str__(self) -> str:
         message = f"{self.song_name}"
+        message += f" <{str(self.game_mode)}>"
         message += f"+{str(self.mods)}" if self.mods != Mod.NO_MOD else ""
         message += "  "
         if self.has_multiple_pp:

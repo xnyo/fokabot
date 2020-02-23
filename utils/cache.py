@@ -1,4 +1,5 @@
 import datetime
+import threading
 from typing import Dict, Any, Optional
 
 import logging
@@ -83,6 +84,7 @@ class CacheStorage:
         Initializes a new CacheStorage object
         """
         self._data: Dict[Any, CacheElement] = {}
+        self._lock: threading.Lock = threading.Lock()
 
     def purge(self) -> None:
         """
@@ -90,13 +92,14 @@ class CacheStorage:
 
         :return:
         """
-        self.logger.debug(f"Deleting expired cached elements")
-        # Keep a counter to save some memory
-        c = 0
-        for k in (x for x, v in self._data.items() if v.is_expired):
-            del self._data[k]
-            c += 1
-        self.logger.debug(f"Deleted {c} cached elements.")
+        with self._lock:
+            self.logger.debug(f"Deleting expired cached elements")
+            # Keep a counter to save some memory
+            c = 0
+            for k in (x for x, v in self._data.items() if v.is_expired):
+                del self._data[k]
+                c += 1
+            self.logger.debug(f"Deleted {c} cached elements.")
 
     def __len__(self) -> int:
         """
@@ -104,7 +107,8 @@ class CacheStorage:
 
         :return: number of total elements in the storage
         """
-        return len(self._data)
+        with self._lock:
+            return len(self._data)
 
     def __contains__(self, key: Any) -> bool:
         """
@@ -113,7 +117,8 @@ class CacheStorage:
         :param key: cached element key
         :return: True if self[key] exists and has not expired yet, otherwise False
         """
-        return key in self._data and not self._data[key].is_expired
+        with self._lock:
+            return key in self._data and not self._data[key].is_expired
 
     def __getitem__(self, item: Any) -> Optional[CacheElement]:
         """
@@ -125,11 +130,12 @@ class CacheStorage:
         :return: the element
         :raises KeyError: if there's no element or it has expired
         """
-        if self._data[item].is_expired:
-            del self[item]
-            # Recursively call __getitem__ to raise a KeyError
-            return self[item]
-        return self._data[item]
+        with self._lock:
+            if self._data[item].is_expired:
+                del self[item]
+                # Recursively call __getitem__ to raise a KeyError
+                return self[item]
+            return self._data[item]
 
     def __setitem__(self, key: Any, value: CacheElement) -> None:
         """
@@ -139,7 +145,8 @@ class CacheStorage:
         :param value: cached element
         :return:
         """
-        self._data[key] = value
+        with self._lock:
+            self._data[key] = value
 
     def __delitem__(self, key: Any) -> None:
         """
@@ -149,7 +156,8 @@ class CacheStorage:
         :param key: cached element key
         :return:
         """
-        try:
-            del self._data[key]
-        except KeyError:
-            pass
+        with self._lock:
+            try:
+                del self._data[key]
+            except KeyError:
+                pass

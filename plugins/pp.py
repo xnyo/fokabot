@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Callable, Any, Union, Dict
 
 import re
@@ -19,6 +20,7 @@ NP_REGEX = re.compile(
     r"(?: <(.+)>)"
     r"?((?: (?:\+|\-)\w+)*)"
     r"(?: \|\w+\|)?"
+    r"( ~Relax~)?"
     r"\x01$"
 )
 
@@ -93,7 +95,7 @@ async def last(sender: Dict[str, Any], pm: bool) -> str:
     score = recent_scores[0]
     msg = f"{sender['username']} | " if not pm else ""
     msg += f"[http://osu.ppy.sh/b/{score['beatmap']['beatmap_id']} {score['beatmap']['song_name']}]"
-    msg += f" <{GameMode(score['play_mode']).for_db()}>"
+    msg += f" <{str(GameMode(score['play_mode']))}>"
     if score['mods'] != 0:
         msg += f" +{str(Mod(score['mods']))}"
     msg += f" ({score['accuracy']:.2f}%, {score['rank']})"
@@ -121,13 +123,15 @@ async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, No
         # TODO: Sentry
         bot.logger.warning(f"/np message did not match regex: {message}")
         return
-    id_type, id_, beatmap_name, game_mode, mods_str = match.groups()
+    id_type, id_, beatmap_name, game_mode, mods_str, relax_str = match.groups()
     if id_type == "s":
         # ?? Seems to be just a weird thing for old maps
         return "The map is too old"
 
     game_mode = GameMode.np_factory(game_mode)
     mods = Mod.np_factory(mods_str)
+    if relax_str is not None:
+        mods |= Mod.RELAX
     bot.np_storage[sender["api_identifier"]] = NpInfo(id_, game_mode, mods)
     return bot.np_storage[sender["api_identifier"]]
 
@@ -172,3 +176,22 @@ async def acc(accuracy: float, np_info: NpInfo, **_) -> None:
         np_info.accuracy = None
     else:
         np_info.accuracy = accuracy
+
+
+@bot.command("mode")
+@plugins.base.private_only
+@plugins.base.arguments(
+    plugins.base.Arg("game_mode", schema.GameModeString),
+    intersect_kwargs=False
+)
+@resolve_np_info
+@np_info_response
+async def mode(game_mode: GameMode, np_info: NpInfo, **_) -> None:
+    """
+    !mode game_mode
+    Returns PP information about the most recent map sent by this user to the bot with /np
+    "game_mode" is the game mode overwrite (std/taiko/ctb/mania)
+
+    :return:
+    """
+    np_info.game_mode = game_mode

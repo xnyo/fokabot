@@ -1,10 +1,11 @@
 from schema import And, Use
 
 from constants.mods import Mod, ModSpecialMode
+from constants.game_modes import GameMode
 
 StrippedString = And(str, Use(lambda x: x.strip()))
 NonEmptyString: And = And(StrippedString, lambda x: bool(x))
-ModStringSingle = And(str, Use(Mod.short_factory))
+ModStringSingle = And(str, Use(lambda x: Mod.RELAX if x.lower() == "relax" else Mod.short_factory(x)))
 ModStringMultipleAndSpecialMode = And(
     str,
     Use(lambda x: x.split(" ")),
@@ -15,3 +16,4 @@ ModStringMultipleAndSpecialMode = And(
         )
     )
 )
+GameModeString = And(str, Use(GameMode.db_factory))

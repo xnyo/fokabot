@@ -1,3 +1,4 @@
+import collections
 from typing import Iterable
 
 import operator
@@ -63,7 +64,7 @@ class Mod(IntFlag):
         If multiple mods are present in mods_str, they're combined.
         Does not check if the mod combination is valid.
 
-        :param mods_str: game mode str from /np message (eg: '+HardRock +DoubleTime')
+        :param mods_str: mods str from /np message (eg: '+HardRock +DoubleTime')
         :return: Mod instance
         """
         return reduce(
