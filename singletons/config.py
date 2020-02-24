@@ -46,6 +46,8 @@ class Config:
             "REDIS_DATABASE": config("REDIS_DATABASE", default="0", cast=int),
             "REDIS_PASSWORD": config("REDIS_PASSWORD", default=None),
             "REDIS_POOL_SIZE": config("REDIS_POOL_SIZE", default="8", cast=int),
+
+            "TINYDB_PATH": config("TINYDB_PATH", default=".db.json"),
         }
 
     def __getitem__(self, item: str) -> Any:
