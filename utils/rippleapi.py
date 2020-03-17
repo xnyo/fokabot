@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from enum import IntEnum, auto
 
 from constants.game_modes import GameMode
+from constants.relax_modes import RelaxMode
 from constants.teams import Team
 
 
@@ -527,11 +528,19 @@ class RippleApiClient(RippleApiBaseClient):
         sub_url: str,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
-        game_mode: Optional[GameMode] = None
+        game_mode: Optional[GameMode] = None,
+        relax_mode: RelaxMode = RelaxMode.BOTH
     ) -> List[Dict[str, Any]]:
         if bool(user_id is None) == bool(username is None):
             raise ValueError("You must provide either user_id or username")
-        d = {k: v for k, v in {"id": user_id, "name": username, "mode": int(game_mode) if game_mode is not None else None}.items() if v is not None}
+        d = {
+            k: v for k, v in {
+                "id": user_id,
+                "name": username,
+                "mode": int(game_mode) if game_mode is not None else None,
+                "relax": int(relax_mode)
+            }.items() if v is not None
+        }
         r = await self._request(f"users/scores/{sub_url}", "GET", d)
         scores = r.get("scores", [])
         if scores is None:
@@ -542,17 +551,19 @@ class RippleApiClient(RippleApiBaseClient):
         self,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
-        game_mode: Optional[GameMode] = None
+        game_mode: Optional[GameMode] = None,
+        relax_mode: RelaxMode = RelaxMode.BOTH
     ) -> List[Dict[str, Any]]:
-        return await self._scores("recent", user_id, username, game_mode)
+        return await self._scores("recent", user_id, username, game_mode, relax_mode)
 
     async def best_scores(
         self,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
-        game_mode: Optional[GameMode] = None
+        game_mode: Optional[GameMode] = None,
+        relax_mode: RelaxMode = RelaxMode.BOTH
     ) -> List[Dict[str, Any]]:
-        return await self._scores("best", user_id, username, game_mode)
+        return await self._scores("best", user_id, username, game_mode, relax_mode)
 
 
 class CheesegullApiClient(RippleApiBaseClient):
