@@ -17,7 +17,7 @@ except ImportError:
 
 import functools
 import logging
-from typing import Callable, Optional, Dict, Union, List, Tuple, Type, Iterator, Generator, Iterable, Set
+from typing import Callable, Optional, Dict, Union, List, Tuple, Iterator, Set
 
 from aiohttp import web
 import aioredis
@@ -96,10 +96,25 @@ class Bot:
 
         self.tinydb_path = tinydb_path
 
+        self._resume_token: Optional[str] = None
+
         self.login_channels_left: Set[str] = set()
         self.joined_channels: Set[str] = set()
         self.match_delayed_start_tasks: Dict[int, asyncio.Task] = {}
         self.init_hooks: List[InitHook] = []
+
+    @property
+    def suspended(self) -> bool:
+        return self._resume_token is not None
+
+    @property
+    def resume_token(self) -> Optional[str]:
+        return self._resume_token
+
+    @resume_token.setter
+    def resume_token(self, v: Optional[str]) -> None:
+        self._resume_token = v
+        self.client.suspended = v is not None
 
     def send_message(self, message: str, recipient: str) -> None:
         """

@@ -29,12 +29,26 @@ class WsClient:
         self.ws_url = ws_url
         self._reader_queue = asyncio.Queue()
         self._writer_queue = asyncio.Queue()
+        # Messages sent while the client is reconnecting end up in here
+        self._old_writer_queue: Optional[asyncio.Queue] = None
         self._events: DefaultDict[str, asyncio.Event] = defaultdict(lambda: asyncio.Event())
         self._event_handlers: DefaultDict[str, List[Callable]] = defaultdict(list)
         self.ws: Optional[aiohttp.ClientWebSocketResponse] = None
         self.writer_task: Optional[asyncio.Task] = None
         self.reader_task: Optional[asyncio.Task] = None
         self.running: bool = False
+        self.suspended: bool = False
+
+    def recycle_queue(self):
+        self._old_writer_queue = self._writer_queue
+        self._writer_queue = asyncio.Queue()
+
+    def flush_old_queue(self):
+        if self._old_writer_queue is None:
+            return
+        while not self._old_writer_queue.empty():
+            self.send(self._old_writer_queue.get_nowait())
+        self._old_writer_queue = None
 
     def send(self, message: WsMessage) -> None:
         self._writer_queue.put_nowait(message)
@@ -73,6 +87,10 @@ class WsClient:
             async with aiohttp.ClientSession() as session:
                 self.logger.info(f"Connecting to {self.ws_url}")
                 async with session.ws_connect(self.ws_url) as ws:
+                    if self.suspended:
+                        self.logger.debug("Recycling writer queue")
+                        self.recycle_queue()
+
                     self.running = True
                     self.ws = ws
                     self.writer_task = asyncio.ensure_future(self.writer())

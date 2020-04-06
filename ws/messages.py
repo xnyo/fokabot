@@ -67,3 +67,13 @@ class WsSubscribeMatch(WsSubscribe):
 class WsUnsubscribeMatch(WsSubscribe):
     def __init__(self, match_id: int):
         super(WsUnsubscribeMatch, self).__init__(WsEvent.MULTIPLAYER, {"match_id": match_id})
+
+
+class WsResume(WsMessage):
+    def __init__(self, token: str):
+        super(WsResume, self).__init__("resume", {"token": token})
+
+
+class WsSuspend(WsMessage):
+    def __init__(self):
+        super(WsSuspend, self).__init__("suspend")

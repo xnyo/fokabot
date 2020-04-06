@@ -6,19 +6,17 @@ from constants.events import WsEvent
 from singletons.bot import Bot
 from utils.rippleapi import BanchoClientType
 from ws.client import LoginFailedError
-from ws.messages import WsSubscribe, WsAuth, WsJoinChatChannel, WsPong, WsChatMessage
+from ws.messages import WsSubscribe, WsAuth, WsJoinChatChannel, WsPong, WsChatMessage, WsResume, WsSuspend
 
 bot = Bot()
 
 
-@bot.client.on("connected")
-async def connected():
-    bot.logger.debug("Ws client started, now logging in")
+async def _login():
     try:
         bot.client.send(WsAuth(bot.bancho_api_client.token))
         results = await bot.client.wait("msg:auth_success", "msg:auth_failure")
         if "msg:auth_failure" in results:
-            bot.logger.info("Login failed")
+            bot.logger.error("Login failed")
             raise LoginFailedError()
         bot.logger.info("Logged in successfully")
     except LoginFailedError:
@@ -34,6 +32,32 @@ async def connected():
             bot.logger.debug(f"Joining {channel['name']}")
             bot.client.send(WsJoinChatChannel(channel["name"]))
         await bot.run_init_hooks()
+
+
+async def _resume():
+    if not bot.suspended:
+        raise RuntimeError("The bot must be suspended in order to resume")
+    bot.client.send(WsResume(bot.resume_token))
+    results = await bot.client.wait("msg:resume_success", "msg:resume_failure")
+    if "msg:resume_failure" in results:
+        bot.logger.error("Resume failed! Now disposing")
+        bot.loop.stop()
+        return
+
+    # We have logged back in!
+    bot.resume_token = None
+    bot.logger.info("Resumed connection. Flushing old queue.")
+    bot.client.flush_old_queue()
+    bot.client.trigger("resumed")
+
+
+@bot.client.on("connected")
+async def connected():
+    bot.logger.debug("Ws client started, now logging in")
+    if not bot.suspended:
+        await _login()
+    else:
+        await _resume()
 
 
 @bot.client.on("msg:chat_channel_joined")
@@ -109,6 +133,20 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
                     bot.send_message(x, final_recipient)
 
 
+@bot.client.on("msg:suspend")
+async def suspend(token: str, **kwargs):
+    bot.logger.info(f"Suspended fun! Closing ws connection.")
+    bot.resume_token = token
+    # Cancel just the writer task so we do not send any new messages.
+    # The server will take care of closing our connection.
+    # (which will result in cancelling the reader task as well)
+    # All messages sent in the meantime will end up in the queue
+    # and will be sent as soon as the new writer task gets scheduled
+    # once we re-enstablish the connection to the server.
+    if not bot.client.writer_task.cancelled():
+        bot.client.writer_task.cancel()
+
+
 @bot.client.on("disconnected")
 async def on_disconnect(*args, **kwargs):
     """
@@ -131,10 +169,12 @@ async def on_disconnect(*args, **kwargs):
         :return:
         """
         await bot.client.start()
-        await bot.client.wait("ready")
+        await bot.client.wait("ready", "resumed")
         bot.send_message("Reconnected.", "#admin")
 
-    bot.reset()
+    # Reset only if we haven't been disconnected for server recycle
+    if not bot.suspended:
+        bot.reset()
     bot.reconnecting = True
     seconds = 5     # todo: backoff?
     bot.logger.info(f"Disconnected! Starting reconnect loop in {seconds} seconds")

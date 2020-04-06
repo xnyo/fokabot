@@ -6,6 +6,7 @@ from utils.schema import NonEmptyString
 
 bind = Bot().pubsub_binding_manager
 
+
 @bind.register_pubsub_handler("fokabot:message")
 @pubsub.schema({"recipient": NonEmptyString, "message": NonEmptyString})
 async def handle(data: Dict[str, Any]) -> None:
