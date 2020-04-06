@@ -3,6 +3,7 @@ from typing import Dict, Any
 import asyncio
 
 from constants.events import WsEvent
+from plugins.base import Command
 from singletons.bot import Bot
 from utils.rippleapi import BanchoClientType
 from ws.client import LoginFailedError
@@ -119,11 +120,18 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
     else:
         final_recipient = recipient["name"]
     raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
-    for k, v in (bot.command_handlers if is_command else bot.action_handlers).items():
-        if raw_message.startswith(k):
-            bot.logger.debug(f"Triggered {v} ({k}) [{'command' if is_command else 'action'}]")
+    dispatcher = bot.command_handlers if is_command else bot.action_handlers
+    parts = raw_message.split(" ")
+    for i, part in enumerate(parts):
+        if part not in dispatcher:
+            # Nothing to do
+            return
+        if issubclass(type(dispatcher[part]), Command):
+            # Handler found
+            k = " ".join(parts[:i+1])
+            bot.logger.debug(f"Triggered {dispatcher[part]} ({k}) [{'command' if is_command else 'action'}]")
             command_name_length = len(k.split(" "))
-            result = await v.handler(
+            result = await dispatcher[part].handler(
                 sender=sender, recipient=recipient, pm=pm, message=message,
                 parts=message.split(" ")[command_name_length:], command_name=k
             )
@@ -132,6 +140,12 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
                     result = (result,)
                 for x in result:
                     bot.send_message(x, final_recipient)
+
+            # Trigger only one command
+            break
+        else:
+            # Nested
+            dispatcher = dispatcher[part]
 
 
 @bot.client.on("msg:suspend")

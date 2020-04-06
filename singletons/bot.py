@@ -73,8 +73,8 @@ class Bot:
         self.wss = wss
         if not wss:
             self.logger.warning("WSS is disabled")
-        self.command_handlers: Dict[str, plugins.base.Command] = {}
-        self.action_handlers: Dict[str, plugins.base.Command] = {}
+        self.command_handlers = {}
+        self.action_handlers = {}
         self.command_prefix = commands_prefix
         self.reconnecting = False
         self.disposing = False
@@ -243,9 +243,23 @@ class Bot:
             command_name = (command_name,)
         command_name = tuple(x.lower() for x in command_name)
         dest = self.action_handlers if action else self.command_handlers
-        dest[command_name[0]] = plugins.base.CommandWrapper(command_name[0], wrapped, aliases=command_name[1:])
+
+        def put_in_nested_dict(root, parts_, el):
+            d = root
+            for part in parts_[:-1]:
+                if part not in d:
+                    d[part] = {}
+                d = d[part]
+            d[parts_[-1]] = el
+
+        parts = command_name[0].split(" ")
+        put_in_nested_dict(dest, parts, plugins.base.CommandWrapper(command_name[0], wrapped, aliases=command_name[1:]))
         for alias in command_name[1:]:
-            dest[alias] = plugins.base.CommandAlias(alias, wrapped, root_name=command_name[0])
+            put_in_nested_dict(
+                dest,
+                alias.split(" "),
+                plugins.base.CommandAlias(alias, wrapped, root_name=command_name[0])
+            )
         # Always return original
         return functools.partial(func, command_name=command_name)
 
