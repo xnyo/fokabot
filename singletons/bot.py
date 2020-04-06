@@ -65,7 +65,6 @@ class Bot:
 
         self.web_app: web.Application = web.Application()
         # self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
-        self.np_storage: NpStorage = NpStorage()
         self.periodic_tasks: List[asyncio.Task] = []
         if self.bancho_api_client is None or type(self.bancho_api_client) is not BanchoApiClient:
             raise RuntimeError("You must provide a valid BanchoApiClient")
@@ -165,12 +164,12 @@ class Bot:
         asyncio.ensure_future(site.start())
 
         asyncio.get_event_loop().run_until_complete(self._initialize_redis())
-        self.periodic_tasks.extend(
-            (
-                # self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
-                self.loop.create_task(periodic_task(seconds=60)(self.np_storage.purge)),
-            )
-        )
+        # self.periodic_tasks.extend(
+        #     (
+        #         # self.loop.create_task(periodic_task(seconds=60)(self.privileges_cache.purge)),
+        #        self.loop.create_task(periodic_task(seconds=60)(self.np_storage.purge)),
+        #    )
+        # )
 
         asyncio.get_event_loop().run_until_complete(self._initialize_ws())
 

@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional, Callable, Any, Union, Dict
 
@@ -25,21 +26,49 @@ NP_REGEX = re.compile(
 )
 
 
+async def save_np_info(sender: Dict[str, Any], info: NpInfo, *, expire: int = 180) -> None:
+    """
+    Save np cache info in redis
+
+    :param sender: sender dict coming from ws
+    :param info: np info to save. It will be json-serialized.
+    :param expire: redis key expire. Defaults to 180.
+    :return:
+    """
+    with await bot.redis as conn:
+        await conn.set(f"fokabot:np:{sender['api_identifier']}", json.dumps(info.jsonify()), expire=expire)
+
+
 def resolve_np_info(f: Callable) -> Callable:
     """
     Decorator that passes bot.np_storage[api_identifier] to the
     np_info kwarg of the decorated function. If the api_identifier
     is not in the storage, an error message is returned instead.
+    This will also save the new np info in redis after running
+    the handler, so you can safely edit it inside the handler
+    and expect it to be copied back to redis.
 
     :param f:
     :return:
     """
     async def wrapper(*, sender: Dict[str, Any], **kwargs) -> Any:
+        redis_key = f"fokabot:np:{sender['api_identifier']}"
         try:
-            np_info = bot.np_storage[sender["api_identifier"]]
+            with await bot.redis as conn:
+                np_data = await conn.get(redis_key)
+            if np_data is None:
+                raise KeyError()
+            json_data = json.loads(np_data.decode())
+            if "beatmap_id" not in json_data:
+                with await bot.redis as conn:
+                    await conn.delete(redis_key)
+                raise KeyError()
         except KeyError:
             return "Please send me a song with /np first."
-        return await f(np_info=np_info, sender=sender, **kwargs)
+        np_info = NpInfo(**json_data)
+        r = await f(np_info=np_info, sender=sender, **kwargs)
+        await save_np_info(sender, np_info)
+        return r
     return wrapper
 
 
@@ -132,8 +161,9 @@ async def np(sender: Dict[str, Any], message: str, **_) -> Union[NpInfo, str, No
     mods = Mod.np_factory(mods_str)
     if relax_str is not None:
         mods |= Mod.RELAX
-    bot.np_storage[sender["api_identifier"]] = NpInfo(id_, game_mode, mods)
-    return bot.np_storage[sender["api_identifier"]]
+    np_info = NpInfo(id_, game_mode, mods)
+    await save_np_info(sender, np_info)
+    return np_info
 
 
 @bot.command("with")
