@@ -104,6 +104,7 @@ async def ping():
 
 @bot.client.on("msg:chat_message")
 async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool, message: str, **kwargs) -> None:
+    message = message.strip()
     is_command = message.startswith(bot.command_prefix)
     is_action = message.startswith("\x01ACTION")
     if sender["type"] == BanchoClientType.FAKE:
