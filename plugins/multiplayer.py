@@ -36,10 +36,10 @@ def resolve_mp(f: Callable) -> Callable:
     plugins.base.Arg("name", Schema(str)),
     plugins.base.Arg("password", Schema(str), default=None, optional=True),
 )
-async def make(name: str, password: Optional[str]) -> str:
+async def make(name: str, psw: Optional[str]) -> str:
     match_id = await bot.bancho_api_client.create_match(
         name,
-        password,
+        psw,
         beatmap=BanchoApiBeatmap(0, "a" * 32, "No song")
     )
     return f"Multiplayer match #{match_id} created!"
@@ -240,8 +240,8 @@ async def map_(match_id: int, beatmap_id: int, game_mode: Optional[GameMode] = N
 @plugins.base.arguments(
     Arg("password", Schema(str), rest=True)
 )
-async def password(match_id: int, password: str) -> str:
-    await bot.bancho_api_client.edit_match(match_id, password=password)
+async def password(match_id: int, psw: str) -> str:
+    await bot.bancho_api_client.edit_match(match_id, password=psw)
     return "The password has been changed."
 
 
@@ -354,11 +354,11 @@ async def score_v(match_id: int, v: int) -> str:
 @bot.command("mp help")
 @plugins.base.base
 async def help_() -> str:
-    l = '|'.join(
+    cmd_list = '|'.join(
         k[len("mp "):] + (f" (alias of {v.root_name})" if issubclass(type(v), plugins.base.CommandAlias) else "")
         for k, v in bot.get_commands_with_prefix('mp')
     )
-    return f"Supported subcommands: !mp <{l}>"
+    return f"Supported subcommands: !mp <{cmd_list}>"
 
 
 @bot.command("mp info")
@@ -367,33 +367,36 @@ async def help_() -> str:
 @plugins.base.tournament_staff_or_host
 @plugins.base.base
 async def info(match_id: int) -> None:
-    info = await bot.bancho_api_client.get_match_info(match_id)
+    info_ = await bot.bancho_api_client.get_match_info(match_id)
     r = f"#multi_{match_id}"
     bot.send_message("✱ ＭＡＴＣＨ ＩＮＦＯ ✱", r)
-    bot.send_message(f"id: {info['id']}, name: {info['name']}, has password: {info['has_password']}", r)
+    bot.send_message(f"id: {info_['id']}, name: {info_['name']}, has password: {info_['has_password']}", r)
     bot.send_message(
-        f"in progress: {info['in_progress']}, "
-        f"game mode: {GameMode(info['game_mode']).name.lower()}, "
-        f"special: {info['special']}",
+        f"in progress: {info_['in_progress']}, "
+        f"game mode: {GameMode(info_['game_mode']).name.lower()}, "
+        f"special: {info_['special']}",
         r
     )
-    bot.send_message(f"owner: {info['api_owner_user_id']}, private history: {info['private_match_history']}", r)
+    bot.send_message(f"owner: {info_['api_owner_user_id']}, private history: {info_['private_match_history']}", r)
     bot.send_message(
-        f"scoring type: {ScoringType(info['scoring_type']).name}, "
-        f"team type: {TeamType(info['team_type']).name}, ",
+        f"scoring type: {ScoringType(info_['scoring_type']).name}, "
+        f"team type: {TeamType(info_['team_type']).name}, ",
         r
     )
     bot.send_message(
-        f"free mod: {bool(info['free_mod'])}, "
-        f"global mods: {str(Mod(info['mods'])) if info['mods'] != Mod.NO_MOD else 'no mod'}",
+        f"free mod: {bool(info_['free_mod'])}, "
+        f"global mods: {str(Mod(info_['mods'])) if info_['mods'] != Mod.NO_MOD else 'no mod'}",
         r
     )
     bot.send_message("✱ ＳＬＯＴＳ ✱", r)
-    last_full_slot = next((len(info["slots"]) - i for i, x in enumerate(reversed(info["slots"])) if x['user'] is not None), 0)
-    if not info['slots']:
+    last_full_slot = next(
+        (len(info_["slots"]) - i for i, x in enumerate(reversed(info_["slots"])) if x['user'] is not None),
+        0
+    )
+    if not info_['slots']:
         bot.send_message("nobody", r)
     else:
-        for i, slot in enumerate(info["slots"]):
+        for i, slot in enumerate(info_["slots"]):
             if i >= last_full_slot:
                 break
             bot.send_message(
@@ -401,12 +404,12 @@ async def info(match_id: int) -> None:
                     f"[{i}] "
                 ) + (
                     f"[{Team(slot.get('team', Team.NEUTRAL)).name.lower()}] "
-                    if info["team_type"] in (TeamType.TAG_TEAM_VS, TeamType.TEAM_VS)
+                    if info_["team_type"] in (TeamType.TAG_TEAM_VS, TeamType.TEAM_VS)
                     else
                     ""
                 ) + (
                     f"<{SlotStatus(slot['status']).name.capitalize().replace('_', ' ')}> "
-                    f"{'♛ ' if slot['user'] is not None and slot['user']['api_identifier'] == info['host_api_identifier'] else ''}"
+                    f"{'♛ ' if slot['user'] is not None and slot['user']['api_identifier'] == info_['host_api_identifier'] else ''}"
                     f"{slot['user']['username'] if slot['user'] is not None else '{empty}'}"
                     f"{' +' if slot['mods'] != Mod.NO_MOD else ''}{str(Mod(slot['mods']))}"
                 ),

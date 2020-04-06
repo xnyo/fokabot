@@ -5,6 +5,7 @@ from collections import Sequence
 
 ALPHABET = string.ascii_letters + string.digits
 
+
 def safefify_username(username: str) -> str:
     """
     Returns the safe username from a normal username

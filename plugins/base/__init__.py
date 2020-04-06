@@ -39,7 +39,6 @@ class CommandAlias(Command):
         return f"Alias: {super(CommandAlias, self).__str__()}"
 
 
-
 class GenericBotError(Exception):
     pass
 
@@ -151,6 +150,7 @@ def protected(required_privileges: Privileges) -> Callable:
         return wrapper
     return decorator
 
+
 def tournament_staff_or_host(f: Callable) -> Callable:
     """
     Allows this command only if the sender is the host of this match or if the sender
@@ -172,7 +172,7 @@ def tournament_staff_or_host(f: Callable) -> Callable:
         if not can:
             match_info = await singletons.bot.Bot().bancho_api_client.get_match_info(match_id)
             can = match_info["host_api_identifier"] == sender["api_identifier"] \
-                  or match_info["api_owner_user_id"] == sender["user_id"]
+                or match_info["api_owner_user_id"] == sender["user_id"]
         if not can:
             return "You must be the host of the match to trigger this command."
         return await f(sender=sender, match_id=match_id, **kwargs)

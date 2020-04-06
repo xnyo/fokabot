@@ -393,7 +393,7 @@ class BanchoApiClient(RippleApiBaseClient):
     async def lock(
         self, match_id: int, slot: Optional[int] = None, slots: Union[None, int, List[Dict[str, Any]]] = None
     ) -> None:
-        if slots is None == slot is None:
+        if (slots is None) == (slot is None):
             raise ValueError("You must provide either slot or slots, not neither or both.")
         await self._request(f"multiplayer/{match_id}/lock", "POST", self.remove_none({
             "slot": slot,

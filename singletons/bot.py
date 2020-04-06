@@ -26,15 +26,13 @@ from pubsub import reader
 from pubsub.manager import PubSubBindingManager
 from utils import singleton
 from utils.letsapi import LetsApiClient
-from utils.np_storage import NpStorage
-from utils.periodic_tasks import periodic_task
 from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
 from constants.api_privileges import APIPrivileges
 
 
 @singleton.singleton
 class Bot:
-    VERSION: str = "2.3.1"
+    VERSION: str = "2.4.0"
 
     def __init__(
         self, *, nickname: str = "FokaBot", wss: bool = True,

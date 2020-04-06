@@ -11,6 +11,7 @@ class WsMessage:
         if type(data) is dict:
             data = dict(data)
         elif callable(getattr(data, "__dict__", None)):
+            # lol pycharm
             data = data.__dict__()
         else:
             raise ValueError(f"Non-serializable object in ws message data: {data} (type: {type(data)})")
