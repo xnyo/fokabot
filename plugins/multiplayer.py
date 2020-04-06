@@ -36,10 +36,10 @@ def resolve_mp(f: Callable) -> Callable:
     plugins.base.Arg("name", Schema(str)),
     plugins.base.Arg("password", Schema(str), default=None, optional=True),
 )
-async def make(name: str, psw: Optional[str]) -> str:
+async def make(name: str, password: Optional[str]) -> str:
     match_id = await bot.bancho_api_client.create_match(
         name,
-        psw,
+        password,
         beatmap=BanchoApiBeatmap(0, "a" * 32, "No song")
     )
     return f"Multiplayer match #{match_id} created!"
@@ -240,8 +240,8 @@ async def map_(match_id: int, beatmap_id: int, game_mode: Optional[GameMode] = N
 @plugins.base.arguments(
     Arg("password", Schema(str), rest=True)
 )
-async def password(match_id: int, psw: str) -> str:
-    await bot.bancho_api_client.edit_match(match_id, password=psw)
+async def password(match_id: int, password: str) -> str:
+    await bot.bancho_api_client.edit_match(match_id, password=password)
     return "The password has been changed."
 
 
