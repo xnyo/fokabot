@@ -260,17 +260,6 @@ class Bot:
         # Always return original
         return functools.partial(func, command_name=command_name)
 
-    def get_commands_with_prefix(self, prefix: str) -> Iterator[Tuple[str, plugins.base.Command]]:
-        """
-        Returns a list with all commands that start with a specific prefix.
-
-        :param prefix: the prefix, not including the bot prefix. eg: 'mp'
-        :return: a list of all commands that start with that prefix
-        """
-        for k, v in self.command_handlers.items():
-            if k.startswith(prefix):
-                yield k, v
-
     def reset(self) -> None:
         """
         Resets the bot. Must be called when reconnecting.

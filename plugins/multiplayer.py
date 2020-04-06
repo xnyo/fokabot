@@ -355,8 +355,8 @@ async def score_v(match_id: int, v: int) -> str:
 @plugins.base.base
 async def help_() -> str:
     cmd_list = '|'.join(
-        k[len("mp "):] + (f" (alias of {v.root_name})" if issubclass(type(v), plugins.base.CommandAlias) else "")
-        for k, v in bot.get_commands_with_prefix('mp')
+        k + (f" (alias of {v.root_name})" if issubclass(type(v), plugins.base.CommandAlias) else "")
+        for k, v in bot.command_handlers["mp"].items()
     )
     return f"Supported subcommands: !mp <{cmd_list}>"
 
