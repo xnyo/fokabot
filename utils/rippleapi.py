@@ -356,6 +356,17 @@ class BanchoApiClient(RippleApiBaseClient):
         await self._request("system/graceful_shutdown", "DELETE")
         return True
 
+    @RippleApiBaseClient.bind_error_code(409, False)
+    async def recycle(self) -> bool:
+        """
+        Schedules a bancho recycle
+
+        :return: True if the request was accepted,
+                 False if the server is already recycling.
+        """
+        await self._request("system/recycle", "POST")
+        return True
+
     async def create_match(
         self, name: str, password: Optional[str] = None, slots: int = None,
         game_mode: GameMode = None, seed: int = None, beatmap: BanchoApiBeatmap = None

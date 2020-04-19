@@ -48,3 +48,12 @@ async def shutdown(cancel: bool) -> str:
     if await bot.bancho_api_client.graceful_shutdown():
         return "The server will be restarted soon"
     return "The server is already restarting"
+
+
+@bot.command("system recycle")
+@plugins.base.protected(Privileges.ADMIN_MANAGE_SERVERS)
+@plugins.base.base
+async def recycle() -> str:
+    if await bot.bancho_api_client.recycle():
+        return "The server will be recycled very soon"
+    return "The server is already recycling"
