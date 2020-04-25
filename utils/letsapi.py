@@ -1,8 +1,11 @@
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
+import json as stdjson
 import logging
 from typing import Dict, Any, List, Union, Optional
 
-import ujson
 import aiohttp
 import async_timeout
 
@@ -100,8 +103,8 @@ class LetsApiClient:
                 async with session.get(f"{self.base}/{url}", params=params) as response:
                     try:
                         self.logger.debug(f"LETS request: GET {self.base}/{url} [{params}]")
-                        return await response.json(loads=ujson.loads)
-                    except (ValueError, json.JSONDecodeError):
+                        return await response.json(loads=json.loads)
+                    except (ValueError, stdjson.JSONDecodeError):
                         raise FatalLetsApiError(response)
 
     async def get_pp(

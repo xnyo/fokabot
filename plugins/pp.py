@@ -1,5 +1,7 @@
-import json
-import logging
+try:
+    import ujson as json
+except ImportError:
+    import json
 from typing import Optional, Callable, Any, Union, Dict
 
 import re

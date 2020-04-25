@@ -1,4 +1,7 @@
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 import logging
 from typing import Any, Union, Callable
