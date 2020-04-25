@@ -27,7 +27,6 @@ class WsClient:
 
     def __init__(self, ws_url: str):
         self.ws_url = ws_url
-        self._reader_queue = asyncio.Queue()
         self._writer_queue = asyncio.Queue()
         # Messages sent while the client is reconnecting end up in here
         self._old_writer_queue: Optional[asyncio.Queue] = None
@@ -103,7 +102,6 @@ class WsClient:
                                 self.logger.debug(f"-> {message.data}")
                                 try:
                                     d_msg = WsClient.decode_message(message)
-                                    self._reader_queue.put_nowait(d_msg)
                                     self.trigger(f"msg:{d_msg.type_}", **d_msg.data)
                                 except ValueError:
                                     self.logger.error(f"Invalid incoming message: {message.data}")
