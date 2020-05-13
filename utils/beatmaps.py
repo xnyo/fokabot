@@ -54,17 +54,4 @@ async def get_beatmap_set_id(beatmap_id: int, non_cheesegull_only: bool = True) 
 
 
 async def get_download_message(beatmap_set_id: int, beatmap_name: str) -> str:
-    bloodcat_link = f"https://bloodcat.com/osu/s/{beatmap_set_id}"
-    main_link = bloodcat_link
-    is_beatconnect = False
-
-    beatconnect_link = await bot.beatconnect_api_client.get_download_link(beatmap_set_id)
-    if beatconnect_link is not None:
-        main_link = beatconnect_link
-        is_beatconnect = True
-
-    message = f"Download [{main_link} {beatmap_name}]"
-    message += " from beatconncet.io" if is_beatconnect else " from Bloodcat"
-    if is_beatconnect:
-        message += f" (or from [https://bloodcat.com/osu/s/{beatmap_set_id} Bloodcat])"
-    return message
+    return f"Download [https://bloodcat.com/osu/s/{beatmap_set_id} {beatmap_name}] from Bloodcat"

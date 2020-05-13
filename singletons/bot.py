@@ -4,7 +4,6 @@ import signal
 import sys
 
 import plugins.base
-from utils.beatconnect_api import BeatconnectAPIClient
 from utils.init_hook import InitHook
 from utils.osuapi import OsuAPIClient
 from ws.client import WsClient
@@ -17,7 +16,7 @@ except ImportError:
 
 import functools
 import logging
-from typing import Callable, Optional, Dict, Union, List, Tuple, Iterator, Set
+from typing import Callable, Optional, Dict, Union, List, Tuple, Set
 
 from aiohttp import web
 import aioredis
@@ -42,7 +41,6 @@ class Bot:
         cheesegull_api_client: CheesegullApiClient = None,
         lets_api_client: LetsApiClient = None,
         osu_api_client: OsuAPIClient = None,
-        beatconnect_api_client: BeatconnectAPIClient = None,
         http_host: str = None, http_port: int = None,
         redis_host: str = "127.0.0.1", redis_port: int = 6379,
         redis_database: int = 0, redis_password: Optional[str] = None,
@@ -59,7 +57,6 @@ class Bot:
         self.cheesegull_api_client = cheesegull_api_client
         self.osu_api_client = osu_api_client
         self.lets_api_client = lets_api_client
-        self.beatconnect_api_client = beatconnect_api_client
 
         self.web_app: web.Application = web.Application()
         # self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)

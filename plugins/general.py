@@ -38,14 +38,14 @@ async def help_() -> str:
     return "Click (here)[https://ripple.moe/index.php?p=16&id=4] for FokaBot's full command list"
 
 
-@bot.command(("bloodcat", "beatconnect", "mirror", "b"))
+@bot.command(("bloodcat", "mirror", "b"))
 @plugins.base.trigger_filter_or(plugins.base.filters.is_spect, plugins.base.filters.is_multi)
 @plugins.base.base
 async def bloodcat(recipient: Dict[str, Any]) -> Optional[str]:
     """
-    !bloodcat / !beatconnect / !mirror
+    !bloodcat / !mirror
 
-    :return: a link to download the currently played beatmap from beatconnect and bloodcat.
+    :return: a link to download the currently played beatmap from bloodcat.
              Works only in #multiplayer and #spectator
     """
     is_multi = recipient["display_name"] == "#multiplayer"

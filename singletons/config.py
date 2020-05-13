@@ -28,7 +28,6 @@ class Config:
             "RIPPLE_API_TOKEN": token,
 
             "OSU_API_TOKEN": config("OSU_API_TOKEN"),
-            "BEATCONNECT_API_TOKEN": config("BEATCONNECT_API_TOKEN"),
 
             "BANCHO_API_BASE": config("BANCHO_API_BASE", default="https://c.ripple.moe"),
             "BANCHO_API_TOKEN": config("BANCHO_API_TOKEN", default=token),

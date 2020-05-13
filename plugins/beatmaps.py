@@ -20,32 +20,19 @@ async def init():
     bot.client.send(WsSubscribe(WsEvent.STATUS_UPDATES))
 
 
-async def _notify_feature(destination: str) -> None:
-    bot.client.send(
-        WsChatMessage(
-            "Hello! Ripple's chat bot here! I have been upgraded and now I will provide download links "
-            "for unranked maps from beatconnect.io and Bloodcat automatically! You can manually request "
-            "a beatconnect download link for the currently playing map with the !b command. This feature works both "
-            "in multiplayer and spectator!",
-            destination
-        )
-    )
-
-
 @bot.client.on("msg:lobby_match_added")
 async def match_added(**data):
     bot.logger.info(f"Match #{data['id']} added.")
     bot.client.send(WsSubscribeMatch(data['id']))
     await bot.client.wait("msg:subscribed")
-    await _notify_feature(f"#multi_{data['id']}")
     bot.logger.debug(f"Subscribed to match #{data['id']}")
 
 
-@bot.client.on("msg:chat_channel_added")
-async def chat_channel_added(**data):
-    if not data["name"].startswith("#spect_"):
-        return
-    await _notify_feature(data["name"])
+# @bot.client.on("msg:chat_channel_added")
+# async def chat_channel_added(**data):
+#    if not data["name"].startswith("#spect_"):
+#        return
+#     await _notify_feature(data["name"])
 
 
 @bot.client.on("msg:lobby_match_removed")
