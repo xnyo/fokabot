@@ -1,4 +1,4 @@
-# FokaBot
+# FokaBot [![Build Status](https://drone.nyodev.xyz/api/badges/ripple/fokabot/status.svg)](https://drone.nyodev.xyz/ripple/fokabot)
 ## Asynchronous Ripple chat bot, delta-compatible
 
 ### What's this?
