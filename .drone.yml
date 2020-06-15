@@ -6,14 +6,20 @@ name: default
 steps:
   - name: prepare-docker
     image: docker:git
+    environment:
+      GIT_USERNAME:
+        from_secret: git_username
+      GIT_PASSWORD:
+        from_secret: git_password
     commands:
       - mkdir -p /cache/${DRONE_REPO}/docker
-      - git clone https://zxq.co/ripple/dockerfiles /dockerfiles
+      - git clone https://$GIT_USERNAME:$GIT_PASSWORD@zxq.co/ripple/dockerfiles /dockerfiles
       - cat singletons/bot.py | grep "VERSION" | cut -d '"' -f2 | tr -d '\n' > .tags
       - cp /dockerfiles/dockerfiles/fokabot.Dockerfile Dockerfile
     volumes:
       - name: cache
         path: /cache
+    secrets: [ git_username, git_password ]
 
   - name: package-docker
     image: plugins/docker
