@@ -151,7 +151,8 @@ class Bot:
             sys.exit(-1)
 
         self.web_app.add_routes([
-            web.post("/api/v0/send_message", internal_api.handlers.send_message)
+            web.post("/api/v0/send_message", internal_api.handlers.send_message),
+            web.post("/api/v0/last", internal_api.handlers.last),
         ])
         api_runner = web.AppRunner(self.web_app)
         self.loop.run_until_complete(api_runner.setup())

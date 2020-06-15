@@ -111,20 +111,12 @@ def np_info_response(f: Callable) -> Callable:
     return wrapper
 
 
-@bot.command("last")
-@plugins.base.base
-async def last(sender: Dict[str, Any], pm: bool) -> str:
-    """
-    !last
-    Returns some information about the most recent score submitted by the user.
-
-    :return:
-    """
-    recent_scores = await bot.ripple_api_client.recent_scores(username=sender["username"])
+async def last_inner(username: str, pm: bool) -> str:
+    recent_scores = await bot.ripple_api_client.recent_scores(username=username)
     if not recent_scores:
         return "You have no scores :("
     score = recent_scores[0]
-    msg = f"{sender['username']} | " if not pm else ""
+    msg = f"{username} | " if not pm else ""
     msg += f"[http://osu.ppy.sh/b/{score['beatmap']['beatmap_id']} {score['beatmap']['song_name']}]"
     msg += f" <{str(GameMode(score['play_mode']))}>"
     if score['mods'] != 0:
@@ -134,6 +126,18 @@ async def last(sender: Dict[str, Any], pm: bool) -> str:
     msg += f" | {score['pp']:.2f}pp"
     msg += f" | {next((x for _, x in score['beatmap']['difficulty2'].items() if x > 0), 0):.2f}★"
     return msg
+
+
+@bot.command("last")
+@plugins.base.base
+async def last(sender: Dict[str, Any], pm: bool) -> str:
+    """
+    !last
+    Returns some information about the most recent score submitted by the user.
+
+    :return:
+    """
+    return await last_inner(sender["username"], pm)
 
 
 @bot.command(
