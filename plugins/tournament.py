@@ -258,13 +258,7 @@ async def tournament_match_full(match_id: int) -> None:
         bot.send_message(msg, match.chat_channel_name)
     msg = ""
     for i, team in enumerate((match.team_a, match.team_b)):
-        if team.captain_in_match:
-            msg += f"{match.usernames[team.captain]}"
-            if not match.tournament.is_solo:
-                msg += f" ({team.name}'s captain)"
-        else:
-            msg += ", ".join(match.usernames[x] for x in team.members_in_match)
-            msg += f" ({team.name}'s members)"
+        msg += match.captain_or_team_members(team)
         if i == 0:
             msg += " - "
     msg += ", any of you, please roll with the !roll command."

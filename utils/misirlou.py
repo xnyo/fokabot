@@ -169,10 +169,16 @@ class Match:
             return self.usernames[team.captain]
         return f"Team {team.name}"
 
-    def captain_or_team_members(self, team: Team) -> str:
+    def captain_or_team_members(self, team: Team, team_name: bool = True) -> str:
         if team.captain_in_match:
-            return self.usernames[team.captain]
-        return (", ".join(self.usernames[x] for x in team.members_in_match)) + f" ({team.name}'s members)"
+            r = self.usernames[team.captain]
+            if team_name and not self.tournament.is_solo:
+                r += f" ({team.name}'s captain)"
+            return r
+        r = ", ".join(self.usernames[x] for x in team.members_in_match)
+        if team_name and not self.tournament.is_solo:
+            r += f" ({team.name}'s members)"
+        return r
 
 
 class MisirlouMatch:
