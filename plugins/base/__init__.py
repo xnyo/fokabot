@@ -239,4 +239,10 @@ def wrap_response(dest: Callable) -> Callable:
 
 
 def wrap_response_multiplayer(f: Callable) -> Callable:
-    return wrap_response(lambda match_id, *_: f"#multi_{match_id}")(f)
+    """
+    Sends the string returned by this handler to the channel of this
+    tournament match. If it returns None, nothing is sent.
+    The function above must be tournament-resolved
+    (put this decorator after @plugins.tournament.resolve_*)
+    """
+    return wrap_response(lambda match, *_: f"#multi_{match.bancho_match_id}")(f)

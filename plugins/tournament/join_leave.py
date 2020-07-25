@@ -11,7 +11,7 @@ bot = Bot()
 
 
 @bot.client.on("msg:match_user_joined")
-@plugins.tournament.resolve_tournament_only
+@plugins.tournament.resolve_match_update
 async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Match, user: Dict[str, Any], **_) -> None:
     # Determine the slot of whoever joined the match
     new_user = user
@@ -113,8 +113,8 @@ async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Ma
 
 
 @bot.client.on("tournament_match_full")
-async def tournament_match_full(match_id: int) -> None:
-    match = bot.tournament_matches[match_id]
+@plugins.tournament.resolve_event
+async def tournament_match_full(match: misirlou.Match) -> None:
     for msg in (
         f"Welcome to your {match.tournament.name} tournament match! Please be ready to start playing and don't go afk.",
         f"I am the referree bot and I will guide you through your match",

@@ -64,6 +64,9 @@ async def create_misirlou_match(misirlou_match: Dict[str, Any]) -> Optional[misi
 @plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
 @plugins.base.base
 async def create() -> str:
+    """
+    !t create contacts misirlou and creates all pending misirlou matches
+    """
     matches = await bot.misirlou_api_client.get_matches()
     r = [
         x for x in

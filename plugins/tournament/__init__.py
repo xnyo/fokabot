@@ -15,12 +15,19 @@ def init():
     import plugins.tournament.rolls
 
 
-def resolve_tournament_only(f: Callable) -> Callable:
+def resolve_match_update(f: Callable) -> Callable:
     async def wrapper(match: Dict[str, Any], **kwargs):
         if match["id"] not in bot.tournament_matches.keys():
-            # Not a tournament match, abort
             return
         return await f(match=match, tournament_match=bot.tournament_matches[match["id"]], **kwargs)
+    return wrapper
+
+
+def resolve_event(f: Callable) -> Callable:
+    async def wrapper(match_id: int, **kwargs):
+        if match_id not in bot.tournament_matches.keys():
+            return
+        return await f(match=bot.tournament_matches[match_id], **kwargs)
     return wrapper
 
 

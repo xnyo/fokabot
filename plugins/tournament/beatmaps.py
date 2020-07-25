@@ -7,6 +7,11 @@ bot = Bot()
 
 
 def send_map_pool(match: misirlou.Match):
+    """
+    Sends multiple messages containing the map pool
+
+    :param match: misirlou match
+    """
     for k, group in match.tournament.pool.items():
         for i, beatmap in enumerate(group):
             bot.send_message(f"► {beatmap.mods.tournament_str}{i + 1}: {beatmap.name}", match.chat_channel_name)
