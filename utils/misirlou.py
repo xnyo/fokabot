@@ -6,6 +6,7 @@ from typing import Dict, Any, Set, Optional, List
 from constants.game_modes import GameMode
 from constants.misirlou_teams import MisirlouTeam
 from constants.mods import Mod
+from constants.tournament_state import TournamentState
 from utils import general
 
 
@@ -123,6 +124,21 @@ class Match:
         self.picked_beatmap: Optional[Beatmap] = None   # for confirmation
         self.bans: Set[Beatmap] = set()
         self.needs_confirmation: bool = True
+        self._state: List[TournamentState] = [TournamentState.PRE_MATCH]
+
+    @property
+    def state(self) -> TournamentState:
+        return self._state[0]
+
+    @state.setter
+    def state(self, v: TournamentState) -> None:
+        self._state[0] = v
+
+    def push_state(self, v: TournamentState) -> None:
+        self._state.append(v)
+
+    def pop_state(self) -> TournamentState:
+        return self._state.pop()
 
     def swap_picking_team(self) -> None:
         if self.picking_team is None:

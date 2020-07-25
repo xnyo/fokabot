@@ -8,6 +8,7 @@ from schema import Use, And
 import plugins.base
 import plugins.base.filters
 from constants.action import Action
+from constants.tournament_state import TournamentState
 from singletons.bot import Bot
 from utils.rippleapi import BanchoClientType
 import utils.beatmaps
@@ -33,8 +34,9 @@ async def roll(sender: Dict[str, Any], number: int, *, recipient: Dict[str, Any]
         if match_id in bot.tournament_matches.keys():
             # Determine team
             the_team = bot.tournament_matches[match_id].get_user_team(sender["user_id"])
-            if the_team is None or the_team.roll is not None:
-                # Random user or already rolled, abort
+            if the_team is None or the_team.roll is not None or \
+                    bot.tournament_matches[match_id].state != TournamentState.ROLLING:
+                # Random user, already rolled or wrong state. Abort
                 return
 
             # TODO: Captain only

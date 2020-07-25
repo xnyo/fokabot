@@ -3,6 +3,7 @@ from typing import Dict, Any
 from constants.misirlou_teams import MisirlouTeam
 from constants.privileges import Privileges
 from constants.slot_statuses import SlotStatus
+from constants.tournament_state import TournamentState
 from singletons.bot import Bot
 import plugins.tournament
 from utils import misirlou
@@ -68,19 +69,21 @@ async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Ma
         tournament_match.usernames[new_user["user_id"]] = new_user["username"]
 
         # Greet the user with a notification
-        await bot.bancho_api_client.alert(
-            new_user["api_identifier"],
-            f"@@@ {tournament_match.tournament.name} @@@\n\n"
-            "Welcome to your tournament match!\nThe match will begin as soon as all the players show up. "
-            "Please be ready to start playing and don't go afk. The match is managed by an automated bot. "
-            "If you need any kind of assistance you can call a human referee with the command '!t humanref'.\n\n"
-            "Have fun and good luck!"
-        )
+        if tournament_match.state == TournamentState.PRE_MATCH:
+            await bot.bancho_api_client.alert(
+                new_user["api_identifier"],
+                f"@@@ {tournament_match.tournament.name} @@@\n\n"
+                "Welcome to your tournament match!\nThe match will begin as soon as all the players show up. "
+                "Please be ready to start playing and don't go afk. The match is managed by an automated bot. "
+                "If you need any kind of assistance you can call a human referee with the command '!t humanref'.\n\n"
+                "Have fun and good luck!"
+            )
 
         # Notify the bot if the teams are full
         if len(the_team.members_in_match) == \
                 len(tournament_match.team_enum_to_team(the_team.enum.other).members_in_match) == \
                 tournament_match.tournament.team_size:
+            tournament_match.state = TournamentState.ROLLING
             bot.client.trigger("tournament_match_full", match_id=tournament_match.bancho_match_id)
         return
 
@@ -114,6 +117,7 @@ async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Ma
 
 @bot.client.on("tournament_match_full")
 @plugins.tournament.resolve_event
+@plugins.tournament.state(TournamentState.ROLLING)
 async def tournament_match_full(match: misirlou.Match) -> None:
     for msg in (
         f"Welcome to your {match.tournament.name} tournament match! Please be ready to start playing and don't go afk.",

@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Dict, Any
 
+from constants.tournament_state import TournamentState
 from singletons.bot import Bot
 from utils import misirlou
 
@@ -67,3 +68,14 @@ def tournament_regex_pre(*, recipient: Dict[str, Any], pm: bool, **_) -> bool:
     return \
         not pm and recipient["name"].startswith("#multi_") \
         and int(recipient["name"].split("_")[1]) in bot.tournament_matches.keys()
+
+
+def state(s: TournamentState) -> Callable:
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(match: misirlou.Match, **kwargs) -> Any:
+            if match.state != s:
+                # Wrong state!
+                return
+            return await f(match=match, **kwargs)
+        return wrapper
+    return decorator
