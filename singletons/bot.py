@@ -75,6 +75,7 @@ class Bot:
             self.logger.warning("WSS is disabled")
         self.command_handlers = {}
         self.action_handlers = {}
+        self.regex_handlers: List[plugins.base.RegexCommandWrapper] = []
         self.command_prefix = commands_prefix
         self.reconnecting = False
         self.disposing = False
@@ -220,7 +221,8 @@ class Bot:
 
     def command(
         self, command_name: Union[str, List[str], Tuple[str]],
-        action: bool = False, func: Optional[Callable] = None
+        action: bool = False, pre: Optional[Callable] = None, func: Optional[Callable] = None,
+        **kwargs
     ) -> Callable:
         """
         Registers a new command (decorator)
@@ -231,37 +233,55 @@ class Bot:
         >>>     return "hi!"
         ```
 
-        :param command_name: command name
+        :param command_name: command name or a compiled regex, for regex-based commands.
+        In case of regex-based commands, the whole message will be tested (eg: regex 'hi' won't be triggered by '!hi')
         :param action: if True, the command "x" will be triggered when "\x01ACTION x" is sent.
+        :param pre: an optional callable that will receive the same arguments of the command handler.
+        If provided, it will be called before testing for the pattern and the pattern will be tested
+        only if pre is True. Useful for regexes, to avoid testing for a large amount of regexes for each message.
         :param func: function to call. Must accept two arguments (username, channel) and return a str or None.
         :return:
         """
         if func is None:
-            return functools.partial(self.command, command_name, action)  # type: ignore
+            return functools.partial(self.command, command_name, action, pre)  # type: ignore
         wrapped = plugins.base.errors(func)
         if not asyncio.iscoroutinefunction(wrapped):
             wrapped = asyncio.coroutine(wrapped)
+        regex = isinstance(command_name, typing.Pattern)
         if type(command_name) not in (list, tuple):
             command_name = (command_name,)
-        command_name = tuple(x.lower() for x in command_name)
-        dest = self.action_handlers if action else self.command_handlers
+        if action and regex:
+            raise ValueError(f"Cannot have both an action and regex handler! ({command_name})")
+        if regex and not pre:
+            self.logger.warning(f"Provided a regex without a pre for pattern {command_name}")
+        if regex:
+            # Regex
+            for pattern in command_name:
+                self.regex_handlers.append(
+                    plugins.base.RegexCommandWrapper(pattern=pattern, handler=wrapped, pre=pre)
+                )
+        else:
+            # Classic command/action
+            command_name = tuple(x.lower() for x in command_name)
+            dest = self.action_handlers if action else self.command_handlers
 
-        def put_in_nested_dict(root, parts_, el):
-            d = root
-            for part in parts_[:-1]:
-                if part not in d:
-                    d[part] = {}
-                d = d[part]
-            d[parts_[-1]] = el
+            def put_in_nested_dict(root, parts_, el):
+                d = root
+                for part in parts_[:-1]:
+                    if part not in d:
+                        d[part] = {}
+                    d = d[part]
+                d[parts_[-1]] = el
 
-        parts = command_name[0].split(" ")
-        put_in_nested_dict(dest, parts, plugins.base.CommandWrapper(command_name[0], wrapped, aliases=command_name[1:]))
-        for alias in command_name[1:]:
-            put_in_nested_dict(
-                dest,
-                alias.split(" "),
-                plugins.base.CommandAlias(alias, wrapped, root_name=command_name[0])
-            )
+            parts = command_name[0].split(" ")
+            put_in_nested_dict(dest, parts, plugins.base.CommandWrapper(command_name[0], wrapped, aliases=command_name[1:]))
+            for alias in command_name[1:]:
+                put_in_nested_dict(
+                    dest,
+                    alias.split(" "),
+                    plugins.base.CommandAlias(alias, wrapped, root_name=command_name[0])
+                )
+
         # Always return original
         return functools.partial(func, command_name=command_name)
 

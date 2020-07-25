@@ -1,5 +1,5 @@
 from itertools import zip_longest
-from typing import Optional, Any, Callable, List, Dict, Iterable, NamedTuple, TypeVar
+from typing import Optional, Any, Callable, List, Dict, Iterable
 
 from abc import ABC
 from schema import Or, SchemaError
@@ -11,12 +11,22 @@ from utils.rippleapi import RippleApiResponseError, RippleApiError
 
 
 class Command(ABC):
-    def __init__(self, name: str, handler: Callable):
+    def __init__(self, name: Optional[str], handler: Callable):
         self.handler = handler
         self.name = name
 
     def __str__(self) -> str:
         return f"{self.name} {self.handler}"
+
+
+class RegexCommandWrapper:
+    def __init__(self, pattern, handler: Callable, pre: Optional[Callable] = None):
+        self.pre = pre
+        self.pattern = pattern
+        self.handler = handler
+
+    def __str__(self) -> str:
+        return f"RegexCommand: {self.pattern} {self.handler}"
 
 
 class CommandWrapper(Command):

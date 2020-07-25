@@ -1,3 +1,5 @@
+import logging
+import re
 from typing import Dict, Any
 
 import asyncio
@@ -112,40 +114,67 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
         # Do not process messages by fake Foka
         return
     bot.logger.debug(f"{sender['username']}{sender['api_identifier']}: {message} (cmd:{is_command}, act:{is_action})")
-    # nick = sender["username"]
-    if sender["username"].lower() == bot.nickname.lower() or (not is_command and not is_action):
+    if sender["username"].lower() == bot.nickname.lower():
+        # Ignore messages by the bot itself
         return
     if pm:
         final_recipient = sender["username"]
     else:
         final_recipient = recipient["name"]
-    raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
-    dispatcher = bot.command_handlers if is_command else bot.action_handlers
-    parts = raw_message.split(" ")
-    for i, part in enumerate(parts):
-        if part not in dispatcher:
-            # Nothing to do
-            return
-        if issubclass(type(dispatcher[part]), Command):
-            # Handler found
-            k = " ".join(parts[:i+1])
-            bot.logger.debug(f"Triggered {dispatcher[part]} ({k}) [{'command' if is_command else 'action'}]")
-            command_name_length = len(k.split(" "))
-            result = await dispatcher[part].handler(
-                sender=sender, recipient=recipient, pm=pm, message=message,
-                parts=message.split(" ")[command_name_length:], command_name=k
-            )
-            if result is not None:
-                if type(result) not in (tuple, list):
-                    result = (result,)
-                for x in result:
-                    bot.send_message(x, final_recipient)
 
+    result = None
+    if is_command or is_action:
+        # Check command-based handlers
+        bot.logger.debug("CMD")
+        raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
+        dispatcher = bot.command_handlers if is_command else bot.action_handlers
+        parts = raw_message.split(" ")
+        bot.logger.debug(parts)
+        bot.logger.debug(dispatcher)
+        for i, part in enumerate(parts):
+            if part not in dispatcher:
+                # Nothing to do
+                return
+            if issubclass(type(dispatcher[part]), Command):
+                # Handler found
+                k = " ".join(parts[:i+1])
+                bot.logger.debug(f"Triggered {dispatcher[part]} ({k}) [{'command' if is_command else 'action'}]")
+                command_name_length = len(k.split(" "))
+                result = await dispatcher[part].handler(
+                    sender=sender, recipient=recipient, pm=pm, message=message,
+                    parts=message.split(" ")[command_name_length:], command_name=k
+                )
+                # Trigger only one command
+                break
+            else:
+                # Nested
+                dispatcher = dispatcher[part]
+    else:
+        # Not a command nor an action, check regex-based handlers
+        for handler in bot.regex_handlers:
+            # Test all pre first. If pre is True, test the regex
+            # This reduces the number of regexes that we test
+            if handler.pre is not None and not handler.pre(sender=sender, recipient=recipient, pm=pm, message=message):
+                # Pre returned False, skip
+                continue
+            # Pre returned True or no pre at all, test regex
+            match = handler.pattern.fullmatch(message)
+            if not match:
+                continue
+            result = await handler.handler(
+                sender=sender, recipient=recipient, pm=pm,
+                message=message, parts=match.groups(), command_name=handler.pattern
+            )
             # Trigger only one command
             break
-        else:
-            # Nested
-            dispatcher = dispatcher[part]
+
+    # Return result(s) as message
+    if result is None:
+        return
+    if type(result) not in (tuple, list):
+        result = (result,)
+    for x in result:
+        bot.send_message(x, final_recipient)
 
 
 @bot.client.on("msg:suspend")
