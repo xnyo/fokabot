@@ -1,94 +1,17 @@
-import asyncio
-import logging
-import re
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any
 
-import plugins.base
 from constants.misirlou_teams import MisirlouTeam
 from constants.privileges import Privileges
-from constants.scoring_types import ScoringType
 from constants.slot_statuses import SlotStatus
-from constants.team_types import TeamType
 from singletons.bot import Bot
-from utils import general, misirlou
-from utils.rippleapi import BanchoApiBeatmap
+import plugins.tournament
+from utils import misirlou
 
 bot = Bot()
 
 
-def resolve_tournament_only(f: Callable) -> Callable:
-    async def wrapper(match: Dict[str, Any], **kwargs):
-        if match["id"] not in bot.tournament_matches.keys():
-            # Not a tournament match, abort
-            return
-        return await f(match=match, tournament_match=bot.tournament_matches[match["id"]], **kwargs)
-    return wrapper
-
-
-async def create_misirlou_match(misirlou_match: Dict[str, Any]) -> Optional[misirlou.Match]:
-    """
-    Creates a misirlou match and attempts to invite all required players
-
-    :param misirlou_match: a dictionary containing misirlou api data
-    :return: the id of the match that has just been created
-    """
-    for k, v in bot.tournament_matches.items():
-        if misirlou_match["id"] == v.id_:
-            # Already exists
-            return None
-    # Dict -> object
-    match = misirlou.Match.json_factory(
-        misirlou_match,
-        password=general.random_secure_string(8).replace(" ", "_")
-    )
-    bancho_match_id = await bot.bancho_api_client.create_match(
-        name=f"{match.tournament.abbreviation}: "
-             f"({match.team_a.name}) vs ({match.team_b.name})",
-        password=match.password,
-        slots=match.tournament.team_size * 2 + 1,  # 1 extra slot for human ref, just in case
-        game_mode=match.tournament.game_mode,
-        beatmap=BanchoApiBeatmap(
-            2116202,
-            "06b536749d5a59536983854be90504ee",
-            misirlou_match['tournament']['name']
-        ),  # TODO: change
-    )
-    match.bancho_match_id = bancho_match_id
-    await bot.bancho_api_client.edit_match(
-        match.bancho_match_id,
-        team_type=TeamType.TEAM_VS,
-        scoring_type=ScoringType.SCORE_V2,
-    )
-    await bot.bancho_api_client.freeze(match.bancho_match_id, enable=True)
-
-    # Send invites
-    for member in match.team_a.members + match.team_b.members:
-        if await bot.bancho_api_client.is_online(member, game_only=True):
-            bot.send_message(
-                f"Your match on tournament {match.tournament.name} is ready! "
-                f"\"[osump://{match.bancho_match_id}/{match.password} Click here to join it]\"",
-                member,
-            )
-    bot.tournament_matches[bancho_match_id] = match
-    return match
-
-
-@bot.command("t create")
-@plugins.base.protected(Privileges.USER_TOURNAMENT_STAFF)
-@plugins.base.base
-async def create() -> str:
-    matches = await bot.misirlou_api_client.get_matches()
-    r = [
-        x for x in
-        await asyncio.gather(*(create_misirlou_match(x) for x in matches))
-        if x is not None
-    ]
-    return f"{len(r)} pending match{' has' if len(r) == 1 else 'es have'} " \
-           f"been created (ids: {[x.bancho_match_id for x in r]})."
-
-
 @bot.client.on("msg:match_user_joined")
-@resolve_tournament_only
+@plugins.tournament.resolve_tournament_only
 async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Match, user: Dict[str, Any], **_) -> None:
     # Determine the slot of whoever joined the match
     new_user = user
@@ -180,70 +103,13 @@ async def match_user_joined(match: Dict[str, Any], tournament_match: misirlou.Ma
             break
     if last_free_slot_idx is None:
         # No slot? don't move them, they won't hurt anyone
-        logging.warning("No more free slots available in the tournament match?")
+        plugins.tournament.logger.warning("No more free slots available in the tournament match?")
     else:
         await bot.bancho_api_client.match_move_user(
             tournament_match.bancho_match_id,
             new_user["api_identifier"],
             last_free_slot_idx,
         )
-
-
-@bot.client.on("tournament_first_rolled")
-@plugins.base.wrap_response_multiplayer
-async def tournament_first_rolled(match_id: int) -> str:
-    match = bot.tournament_matches[match_id]
-    other_team = match.team_a if match.team_a.roll is None else match.team_b
-    return f"{match.captain_or_team_name(other_team)}, please roll."
-
-
-@bot.client.on("tournament_both_rolled")
-async def tournament_both_rolled(match_id: int) -> None:
-    match = bot.tournament_matches[match_id]
-    for msg in (
-        f"{match.captain_or_team_name(match.roll_winner)} won the roll!",
-        "Please pick your first ban. Here's the pool:"
-    ):
-        bot.send_message(msg, match.chat_channel_name)
-    _send_map_pool(match)
-    _send_ask_beatmap(match, match.roll_winner, operation="ban", confirmation=True)
-
-
-def _send_map_pool(match: misirlou.Match):
-    for k, group in match.tournament.pool.items():
-        for i, beatmap in enumerate(group):
-            bot.send_message(f"► {beatmap.mods.tournament_str}{i + 1}: {beatmap.name}", match.chat_channel_name)
-
-
-def _send_ask_beatmap(
-    match: misirlou.Match, picking_team: misirlou.Team, operation: str, confirmation: bool
-) -> None:
-    who = match.captain_or_team_members(picking_team)
-    if not picking_team.captain_in_match:
-        who += ", any of you"
-    bot.send_message(
-        f"{who}, please type one beatmap you want to {operation} (eg: NM1, HD2, etc). "
-        f"I will{' not ' if not confirmation else ' '}ask for confirmation.",
-        match.chat_channel_name
-    )
-
-
-def tournament_regex_pre(*, recipient: Dict[str, Any], pm: bool, **_) -> bool:
-    """
-    Regex pre that returns True only if the message is sent in a
-    registered tournament match chat channel.
-
-    :return: True if the message is sent in a tournament match chat channel
-    """
-    return \
-        not pm and recipient["name"].startswith("#multi_") \
-        and int(recipient["name"].split("_")[1]) in bot.tournament_matches.keys()
-
-
-@bot.command(re.compile(r"(NM|HD|HR|DT|FM)+(\d)", re.IGNORECASE), pre=tournament_regex_pre)
-async def on_map(**_) -> str:
-    logging.debug("ON MAP XDD")
-    return "OWO"
 
 
 @bot.client.on("tournament_match_full")
