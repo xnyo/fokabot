@@ -207,3 +207,26 @@ def public_only(f: Callable) -> Callable:
 
 def multiplayer_only(f: Callable) -> Callable:
     return trigger_filter_and(filters.is_multi)(f)
+
+
+def wrap_response(dest: Callable) -> Callable:
+    """
+    Sends the response to the channel/user returned by the provided callable.
+    The callable will receive the same arguments as the decorated function.
+    Useful when working with arbitrary handlers (eg: @on('tournament_...')), which
+    do not support sending messages with return by default (supported only by
+    message handlers)
+    """
+    import singletons.bot
+
+    def decorator(f: Callable) -> Callable:
+        async def wrapper(**kwargs) -> Any:
+            msg = await f(**kwargs)
+            if msg is not None:
+                singletons.bot.Bot().send_message(msg, dest(**kwargs))
+        return wrapper
+    return decorator
+
+
+def wrap_response_multiplayer(f: Callable) -> Callable:
+    return wrap_response(lambda match_id, *_: f"#multi_{match_id}")(f)

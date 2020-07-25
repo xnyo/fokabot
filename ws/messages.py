@@ -1,4 +1,4 @@
-from typing import Dict, Any, TypeVar, Optional
+from typing import Dict, Any, TypeVar, Optional, Union
 
 from constants.events import WsEvent
 
@@ -56,7 +56,7 @@ class WsPong(WsMessage):
 
 
 class WsChatMessage(WsMessage):
-    def __init__(self, message: str, recipient: str):
+    def __init__(self, message: str, recipient: Union[str, int]):
         super(WsChatMessage, self).__init__("chat_message", {"message": message, "target": recipient})
 
 

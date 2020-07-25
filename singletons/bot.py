@@ -1,10 +1,14 @@
 import asyncio
 import inspect
+import re
 import signal
 import sys
 
+import typing
+
 import plugins.base
 from utils.init_hook import InitHook
+from utils.misirlouapi import MisirlouApiClient
 from utils.osuapi import OsuAPIClient
 from ws.client import WsClient
 from ws.messages import WsChatMessage
@@ -16,14 +20,14 @@ except ImportError:
 
 import functools
 import logging
-from typing import Callable, Optional, Dict, Union, List, Tuple, Set
+from typing import Callable, Optional, Dict, Union, List, Tuple, Set, Any
 
 from aiohttp import web
 import aioredis
 
 from pubsub import reader
 from pubsub.manager import PubSubBindingManager
-from utils import singleton
+from utils import singleton, misirlou
 from utils.letsapi import LetsApiClient
 from utils.rippleapi import BanchoApiClient, RippleApiClient, CheesegullApiClient
 from constants.api_privileges import APIPrivileges
@@ -41,6 +45,7 @@ class Bot:
         cheesegull_api_client: CheesegullApiClient = None,
         lets_api_client: LetsApiClient = None,
         osu_api_client: OsuAPIClient = None,
+        misirlou_api_client: MisirlouApiClient = None,
         http_host: str = None, http_port: int = None,
         redis_host: str = "127.0.0.1", redis_port: int = 6379,
         redis_database: int = 0, redis_password: Optional[str] = None,
@@ -57,6 +62,7 @@ class Bot:
         self.cheesegull_api_client = cheesegull_api_client
         self.osu_api_client = osu_api_client
         self.lets_api_client = lets_api_client
+        self.misirlou_api_client = misirlou_api_client
 
         self.web_app: web.Application = web.Application()
         # self.privileges_cache: PrivilegesCache = PrivilegesCache(self.ripple_api_client)
@@ -95,6 +101,7 @@ class Bot:
         self.login_channels_left: Set[str] = set()
         self.joined_channels: Set[str] = set()
         self.match_delayed_start_tasks: Dict[int, asyncio.Task] = {}
+        self.tournament_matches: Dict[int, misirlou.Match] = {}
         self.init_hooks: List[InitHook] = []
 
     @property
@@ -110,7 +117,7 @@ class Bot:
         self._resume_token = v
         self.client.suspended = v is not None
 
-    def send_message(self, message: str, recipient: str) -> None:
+    def send_message(self, message: str, recipient: Union[str, int]) -> None:
         """
         Shorthand to send a message
 

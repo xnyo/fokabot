@@ -1,5 +1,5 @@
 import collections
-from typing import Iterable
+from typing import Iterable, Dict
 
 import operator
 from functools import reduce
@@ -44,8 +44,45 @@ class Mod(IntFlag):
     KEY3 = 134217728
     KEY2 = 268435456
     SCOREV2 = 536870912
+
+    # Special, ripple only
+    # It's not possible to extend enums in Python, so we have to do it this way...
+    FREE_MODS = 1073741824
+
     KEY_MODS = KEY2 | KEY3 | KEY1 | KEY_COOP | KEY9 | KEY8 | KEY7 | KEY6 | KEY5 | KEY4
     FREE_MOD_ALLOWED = KEY_MODS | FADE_IN | RELAX2 | SPUN_OUT | FLASHLIGHT | RELAX | SUDDEN_DEATH | HARD_ROCK | HIDDEN | EASY | NO_FAIL
+
+    def _str(self, acronyms: Dict["Mod", str]) -> str:
+        if self == 0 and Mod.NO_MOD in acronyms:
+            return acronyms[Mod.NO_MOD]
+        return "".join(acronyms[x] for x in Mod if self & x > 0 and x in acronyms)
+
+    @property
+    def tournament_str(self) -> str:
+        """
+        Returns a readable and short representation
+        of the mods represented by this object for tournaments.
+
+        :return: mod combination string. Eg: 'HDDT', 'NM', 'FM'...
+        """
+        if self & Mod.FREE_MODS > 0:
+            # Free mods
+            # We want FMXXYY only if != nomod, we don't want FMNM!
+            rest = self.normalized
+            extra = "" if rest == Mod.NO_MOD else str(Mod(rest))
+            return "FM" + extra
+        # Normal
+        return self._str(_TOURNAMENT_ACRONYMS)
+
+    @property
+    def normalized(self) -> "Mod":
+        """
+        Returns a new Mod, with FREE_MODS filtered out
+        Useful only for misirlou tournaments
+
+        :return: self, but without FREE_MODS
+        """
+        return Mod(self & ~Mod.FREE_MODS)
 
     def __str__(self) -> str:
         """
@@ -54,7 +91,7 @@ class Mod(IntFlag):
 
         :return: mod combination string. Eg: 'HDDT', 'NOMOD'
         """
-        return "".join(_ACRONYMS[x] for x in Mod if self & x > 0 and x in _ACRONYMS)
+        return self._str(_ACRONYMS)
 
     @classmethod
     def np_factory(cls, mods_str: str) -> "Mod":
@@ -128,6 +165,10 @@ _ACRONYMS = {
     Mod.KEY2: "2K",
     # Mod.SCOREV2: "score v2",
 }
+
+_TOURNAMENT_ACRONYMS = _ACRONYMS.copy()
+_TOURNAMENT_ACRONYMS[Mod.NO_MOD] = "NM"
+
 _MODS = {v: k for k, v in _ACRONYMS.items()}
 _NP = {
     "Easy": Mod.EASY,

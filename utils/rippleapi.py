@@ -81,7 +81,8 @@ class RippleApiBaseClient(ABC):
 
     def __init__(
         self, token: Optional[str] = None, base: str = "https://ripple.moe",
-        user_agent: str = "fokabot", timeout: int = 5, check_status: bool = True
+        user_agent: str = "fokabot", timeout: int = 5, check_status: bool = True,
+        auth_header: str = "X-Ripple-Token"
     ):
         """
         Initializes a new BanchoAPiClient
@@ -99,6 +100,7 @@ class RippleApiBaseClient(ABC):
         self.privileges = 0
         self.user_privileges = 0
         self._check_status = check_status
+        self.auth_header = auth_header
         # self._session: aiohttp.ClientSession = None
 
     @property
@@ -128,7 +130,7 @@ class RippleApiBaseClient(ABC):
 
     async def _request(
         self, handler: str, method: str = "GET", data: Optional[Dict[Any, Any]] = None
-    ) -> Dict[Any, Any]:
+    ) -> Union[List[Any], Dict[Any, Any]]:
         """
         Sends a request to the ripple api
 
@@ -181,7 +183,7 @@ class RippleApiBaseClient(ABC):
                 # Different authorization header based on our authentication method
                 # (oauth or normal token)
                 if self.token is not None:
-                    headers = {"X-Ripple-Token": self.token}
+                    headers = {self.auth_header: self.token}
                 else:
                     headers = {}
 
@@ -294,6 +296,17 @@ class BanchoApiClient(RippleApiBaseClient):
             if game_only and client["type"] == BanchoClientType.OSU or not game_only:
                 return client
         return None
+
+    async def is_online(self, user_id: int, game_only: bool = False) -> bool:
+        """
+        Returns True if the specified user is online.
+        Can also consider an user online only if they are logged in through the game.
+
+        :param user_id: id of the user
+        :param game_only: id True, consider someone online only if they are connected through the game
+        :return: True if online, False if offline
+        """
+        return await self.get_client(user_id=user_id, game_only=game_only) is not None
 
     async def moderated(self, channel: str, moderated: bool) -> None:
         """

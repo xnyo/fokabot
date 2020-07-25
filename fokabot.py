@@ -2,6 +2,7 @@ import importlib
 import logging
 
 from utils.init_hook import InitHook
+from utils.misirlouapi import MisirlouApiClient
 from utils.osuapi import OsuAPIClient
 
 try:
@@ -56,6 +57,10 @@ def main() -> None:
         ),
         osu_api_client=OsuAPIClient(
             Config()["OSU_API_TOKEN"]
+        ),
+        misirlou_api_client=MisirlouApiClient(
+            Config()["MISIRLOU_API_TOKEN"],
+            Config()["MISIRLOU_API_BASE"],
         ),
         http_host=Config()["HTTP_HOST"],
         http_port=Config()["HTTP_PORT"],

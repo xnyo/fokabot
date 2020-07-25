@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Dict, Any
 
 import random
@@ -16,7 +17,7 @@ bot = Bot()
 
 @bot.command("roll")
 @plugins.base.arguments(plugins.base.Arg("number", And(Use(int), lambda x: x > 0), default=100, optional=True))
-async def roll(sender: Dict[str, Any], number: int) -> str:
+async def roll(sender: Dict[str, Any], number: int, *, recipient: Dict[str, Any]) -> Optional[str]:
     """
     !roll <number>
 
@@ -24,7 +25,37 @@ async def roll(sender: Dict[str, Any], number: int) -> str:
     :param number: max number, must > 0. Default: 100
     :return: a random number between 0 and some other number
     """
-    return f"{sender['username']} rolls {random.randrange(0, number)} points!"
+    rolled = None
+
+    if recipient["name"].startswith("#multi_"):
+        # Handle tournament matches !roll
+        match_id = int(recipient["name"].split("_")[1])
+        if match_id in bot.tournament_matches.keys():
+            # Determine team
+            the_team = bot.tournament_matches[match_id].get_user_team(sender["user_id"])
+            if the_team is None or the_team.roll is not None:
+                # Random user or already rolled, abort
+                return
+
+            # TODO: Captain only
+
+            # Roll ignoring max number, always use 100
+            rolled = random.randrange(0, 100)
+
+            # Re-roll if numbers are the same
+            other_roll = bot.tournament_matches[match_id].team_enum_to_team(the_team.enum.other).roll
+            if rolled == other_roll:
+                return f"{sender['username']} rolls {rolled} points. That's a tie! Please roll again."
+
+            # Ok, store roll
+            the_team.roll = rolled
+            bot.client.trigger(
+                "tournament_first_rolled" if other_roll is None else "tournament_both_rolled",
+                match_id=match_id
+            )
+    if rolled is None:
+        rolled = random.randrange(0, number)
+    return f"{sender['username']} rolls {rolled} points!"
 
 
 @bot.command("help")

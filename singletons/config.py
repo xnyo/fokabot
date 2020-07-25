@@ -18,7 +18,7 @@ class Config:
 
             "BOT_PLUGINS": config(
                 "BOT_PLUGINS",
-                default="general,faq,alert,mod,system,pp,multiplayer,beatmaps",
+                default="general,faq,alert,mod,system,pp,multiplayer,beatmaps,tournament",
                 cast=Csv(str)
             ),
 
@@ -47,6 +47,9 @@ class Config:
             "REDIS_POOL_SIZE": config("REDIS_POOL_SIZE", default="8", cast=int),
 
             "TINYDB_PATH": config("TINYDB_PATH", default=".db.json"),
+            
+            "MISIRLOU_API_BASE": config("MISIRLOU_API_BASE", default="http://m7ure_nginx"),
+            "MISIRLOU_API_TOKEN": config("MISIRLOU_API_TOKEN", default="foka")
         }
 
     def __getitem__(self, item: str) -> Any:
