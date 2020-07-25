@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 
 class TournamentState(Enum):
-    WAITING = auto()
+    PRE_MATCH = auto()
     ROLLING = auto()
     BANNING = auto()
     PICKING_WARMUP = auto()
