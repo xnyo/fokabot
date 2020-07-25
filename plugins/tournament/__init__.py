@@ -2,6 +2,7 @@ import logging
 from typing import Callable, Dict, Any
 
 from singletons.bot import Bot
+from utils import misirlou
 
 bot = Bot()
 logger = logging.getLogger("tournament")
@@ -28,6 +29,31 @@ def resolve_event(f: Callable) -> Callable:
         if match_id not in bot.tournament_matches.keys():
             return
         return await f(match=bot.tournament_matches[match_id], **kwargs)
+    return wrapper
+
+
+def resolve(f: Callable) -> Callable:
+    async def wrapper(*, recipient: Dict[str, Any], **kwargs):
+        assert recipient["display_name"] == "#multiplayer"
+        match_id = int(recipient["name"].split("_")[1])
+        if match_id not in bot.tournament_matches.keys():
+            return
+        return await f(match=bot.tournament_matches[match_id], recipient=recipient, **kwargs)
+    return wrapper
+
+
+def cap_or_team_members_only(f: Callable) -> Callable:
+    async def wrapper(*, sender: Dict[str, Any], match: misirlou.Match, **kwargs):
+        uid = sender["user_id"]
+        team = match.get_user_team(uid)
+        if team is None:
+            # Non-player (ref?) tried to trigger a player-only command, fail silently
+            return
+        if team.captain_in_match and uid != team.captain:
+            # Captain is in match, abort!
+            return f"{sender['username']}, only the captain of your team can use this command."
+        # Captain not in match, allow it
+        return await f(match=match, sender=sender, **kwargs)
     return wrapper
 
 

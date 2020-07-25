@@ -125,12 +125,9 @@ async def on_message(sender: Dict[str, Any], recipient: Dict[str, Any], pm: bool
     result = None
     if is_command or is_action:
         # Check command-based handlers
-        bot.logger.debug("CMD")
         raw_message = message[len(bot.command_prefix if is_command else "\x01ACTION"):].lower().strip()
         dispatcher = bot.command_handlers if is_command else bot.action_handlers
         parts = raw_message.split(" ")
-        bot.logger.debug(parts)
-        bot.logger.debug(dispatcher)
         for i, part in enumerate(parts):
             if part not in dispatcher:
                 # Nothing to do

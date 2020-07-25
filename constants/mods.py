@@ -110,7 +110,7 @@ class Mod(IntFlag):
         )
 
     @classmethod
-    def short_factory(cls, readable_mods: str) -> "Mod":
+    def _short_factory(cls, readable_mods: str, acronyms: Dict[str, "Mod"]) -> "Mod":
         """
         Returns a Mod instance from a string of short mods. With no spaces, case-insensitive. (eg: HDDTHR).
 
@@ -120,8 +120,16 @@ class Mod(IntFlag):
         readable_mods = readable_mods.strip()
         return reduce(
             operator.or_,
-            (_MODS.get(readable_mods[i:i + 2].upper(), Mod.NO_MOD) for i in range(0, len(readable_mods), 2))
+            (acronyms.get(readable_mods[i:i + 2].upper(), Mod.NO_MOD) for i in range(0, len(readable_mods), 2))
         )
+
+    @classmethod
+    def short_factory(cls, readable_mods: str) -> "Mod":
+        return cls._short_factory(readable_mods, _MODS)
+
+    @classmethod
+    def short_tournament_factory(cls, readable_mods: str) -> "Mod":
+        return cls._short_factory(readable_mods, _TOURNAMENT_MODS)
 
     @classmethod
     def iterable_factory(cls, readable_mods: Iterable[str]) -> "Mod":
@@ -167,9 +175,11 @@ _ACRONYMS = {
 }
 
 _TOURNAMENT_ACRONYMS = _ACRONYMS.copy()
+_TOURNAMENT_ACRONYMS[Mod.FREE_MODS] = "FM"
 _TOURNAMENT_ACRONYMS[Mod.NO_MOD] = "NM"
 
 _MODS = {v: k for k, v in _ACRONYMS.items()}
+_TOURNAMENT_MODS = {v: k for k, v in _TOURNAMENT_ACRONYMS.items()}
 _NP = {
     "Easy": Mod.EASY,
     "NoFail": Mod.NO_FAIL,

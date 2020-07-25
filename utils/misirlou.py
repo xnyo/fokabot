@@ -29,7 +29,7 @@ class Beatmap:
 class Tournament:
     def __init__(
         self, id_: int, name: str, abbreviation: str, game_mode: GameMode,
-        team_size: int, pool: Dict[str, List[Beatmap]], tiebreaker: Beatmap,
+        team_size: int, pool: Dict[Mod, List[Beatmap]], tiebreaker: Beatmap,
     ):
         self.id_ = id_
         self.name = name
@@ -42,6 +42,14 @@ class Tournament:
     @property
     def is_solo(self) -> bool:
         return self.team_size == 1
+
+    def acronym_to_beatmap(self, group_str: str, idx: int) -> Optional[Beatmap]:
+        group_str = group_str.upper()
+        mods = Mod.short_tournament_factory(group_str)
+        idx = max(0, idx - 1)
+        if mods not in self.pool.keys() or idx >= len(self.pool[mods]):
+            return None
+        return self.pool[mods][idx]
 
     @classmethod
     def json_factory(cls, j: Dict[str, Any]) -> "Tournament":
@@ -111,6 +119,15 @@ class Match:
         self.bancho_match_id = None
         self.usernames: Dict[int, str] = {}
         self.password: str = password
+        self.picking_team: Optional[Team] = None
+        self.picked_beatmap: Optional[Beatmap] = None   # for confirmation
+        self.bans: Set[Beatmap] = set()
+        self.needs_confirmation: bool = True
+
+    def swap_picking_team(self) -> None:
+        if self.picking_team is None:
+            raise ValueError("Cannot swap None")
+        self.picking_team: Team = self.team_enum_to_team(self.picking_team.enum.other)
 
     @classmethod
     def json_factory(cls, j: Dict[str, any], password: str) -> "Match":

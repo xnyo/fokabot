@@ -246,3 +246,11 @@ def wrap_response_multiplayer(f: Callable) -> Callable:
     (put this decorator after @plugins.tournament.resolve_*)
     """
     return wrap_response(lambda match, *_: f"#multi_{match.bancho_match_id}")(f)
+
+
+def wrap_caller(f: Callable) -> Callable:
+    async def wrapper(sender: Dict[str, Any], **kwargs) -> Any:
+        msg = await f(sender=sender, **kwargs)
+        if msg is not None:
+            return f"{sender['username']}, {msg[0].lower() + msg[1:]}"
+    return wrapper

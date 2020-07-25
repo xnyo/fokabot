@@ -17,10 +17,11 @@ async def tournament_first_rolled(match: misirlou.Match) -> str:
 @bot.client.on("tournament_both_rolled")
 @plugins.tournament.resolve_event
 async def tournament_both_rolled(match: misirlou.Match) -> None:
+    match.picking_team = match.roll_winner
     for msg in (
         f"{match.captain_or_team_name(match.roll_winner)} won the roll!",
         "Please pick your first ban. Here's the pool:"
     ):
         bot.send_message(msg, match.chat_channel_name)
     plugins.tournament.beatmaps.send_map_pool(match)
-    plugins.tournament.beatmaps.send_ask_beatmap(match, match.roll_winner, operation="ban", confirmation=True)
+    plugins.tournament.beatmaps.send_ask_beatmap(match, operation="ban", confirmation=True)
